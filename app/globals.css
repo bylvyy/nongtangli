@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&family=Inter:wght@400;500;600&display=swap");
+@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
+
+html,
+body {
+  background-color: #f7f6f2;
+  color: #23211a;
+  font-family: "Inter", "PingFang SC", "Helvetica Neue", sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Noto Serif SC", Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+.tag-chip {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs border border-ink-200 text-ink-600 bg-ink-50;
+}
+
+.tag-chip-strong {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-ink-800 text-ink-50;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
