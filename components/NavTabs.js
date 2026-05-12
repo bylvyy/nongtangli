@@ -9,7 +9,8 @@ const TABS = [
 ];
 
 export default function NavTabs() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
+  if (pathname.startsWith("/route/")) return null;
   return (
     <nav className="fixed bottom-0 inset-x-0 z-[800] bg-ink-50/95 backdrop-blur border-t border-ink-100 pb-safe">
       <div className="max-w-2xl mx-auto grid grid-cols-2">

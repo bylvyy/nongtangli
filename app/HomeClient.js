@@ -74,25 +74,33 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
       {/* 上海足迹概要 */}
       <Link
         href="/footprint"
-        className="block rounded-2xl bg-ink-800 text-ink-50 p-4"
+        className="block rounded-2xl bg-ink-800 p-5 hover:bg-ink-700 transition group shadow-sm"
       >
-        <div className="text-[11px] tracking-widest text-ink-200 uppercase">
-          上海足迹
+        <div className="flex items-baseline justify-between">
+          <div className="text-xs text-ink-50/60 tracking-wide">我的上海足迹</div>
+          <div className="text-xs text-ink-50/60 group-hover:text-ink-50 transition">
+            查看 →
+          </div>
         </div>
-        <div className="mt-2 flex items-baseline gap-4 font-serif">
+        <div className="mt-4 grid grid-cols-3 gap-3 font-serif">
           <div>
-            <div className="text-2xl font-bold">{stats.routeCount}</div>
-            <div className="text-[11px] text-ink-200">条路线</div>
+            <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
+              {stats.routeCount}
+            </div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">条路线</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{stats.distanceKm}</div>
-            <div className="text-[11px] text-ink-200">公里</div>
+            <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
+              {stats.distanceKm}
+            </div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">公里</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{stats.stopCount}</div>
-            <div className="text-[11px] text-ink-200">个地点</div>
+            <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
+              {stats.stopCount}
+            </div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">个地点</div>
           </div>
-          <div className="ml-auto text-xs text-ink-200">查看 →</div>
         </div>
       </Link>
 

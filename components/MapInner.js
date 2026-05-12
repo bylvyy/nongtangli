@@ -13,6 +13,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { getWalkingPath } from "../lib/walkingRoute";
+import { pointWgsToGcj } from "../lib/coords";
 import LocateButton from "./LocateButton";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -73,12 +74,29 @@ export default function MapInner({
   follow,
   setFollow,
 }) {
-  const userPosition = geo?.position;
+  // 数据源里 stops.coords 是 WGS84,显示在国产地图上需要转 GCJ-02
+  const stopsGcj = useMemo(
+    () =>
+      stops?.map((s) => ({
+        ...s,
+        coords: pointWgsToGcj(s.coords),
+      })),
+    [stops],
+  );
+
+  // 浏览器 Geolocation 也是 WGS84
+  const userPosition = useMemo(() => {
+    if (!geo?.position) return null;
+    return {
+      ...geo.position,
+      coords: pointWgsToGcj(geo.position.coords),
+    };
+  }, [geo?.position]);
   const userHeading = heading?.heading;
   const center = useMemo(() => {
-    if (!stops?.length) return [31.2304, 121.4737];
-    return stops[0].coords;
-  }, [stops]);
+    if (!stopsGcj?.length) return [31.2304, 121.4737];
+    return stopsGcj[0].coords;
+  }, [stopsGcj]);
 
   const [walkPath, setWalkPath] = useState(null);
   const [walkStatus, setWalkStatus] = useState("loading");
@@ -87,6 +105,7 @@ export default function MapInner({
     let cancelled = false;
     setWalkStatus("loading");
     setWalkPath(null);
+    // 步行规划传 WGS84 原始坐标,getWalkingPath 内部会处理坐标系
     getWalkingPath(stops).then((path) => {
       if (cancelled) return;
       if (path) {
@@ -101,7 +120,7 @@ export default function MapInner({
     };
   }, [stops]);
 
-  const straightLine = stops?.map((s) => s.coords);
+  const straightLine = stopsGcj?.map((s) => s.coords);
   const userIcon = useMemo(
     () => buildUserIcon(userHeading),
     [userHeading],
@@ -117,8 +136,10 @@ export default function MapInner({
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://amap.com">高德地图</a>'
+          url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+          subdomains={["1", "2", "3", "4"]}
+          maxZoom={18}
         />
 
         {walkPath && (
@@ -140,7 +161,7 @@ export default function MapInner({
           />
         )}
 
-        {stops?.map((s, i) => (
+        {stopsGcj?.map((s, i) => (
           <CircleMarker
             key={i}
             center={s.coords}
@@ -183,7 +204,7 @@ export default function MapInner({
         )}
 
         <FitBounds
-          stops={stops}
+          stops={stopsGcj}
           focusIndex={focusIndex}
           follow={follow}
           userPos={userPosition}
@@ -193,11 +214,6 @@ export default function MapInner({
       {walkStatus === "loading" && (
         <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[11px] text-ink-600 border border-ink-100">
           正在生成步行路径…
-        </div>
-      )}
-      {walkStatus === "fallback" && (
-        <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[11px] text-ink-600 border border-ink-100">
-          仅供参考,以实际道路为准
         </div>
       )}
 

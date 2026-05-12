@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
@@ -14,7 +14,17 @@ export default function RouteDetailClient({ route }) {
   const [follow, setFollow] = useState(false);
   const geo = useGeolocation();
   const heading = useDeviceHeading();
+  const router = useRouter();
   const intensity = deriveIntensity(route.distanceKm);
+
+  function onBack(e) {
+    e.preventDefault();
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }
 
   // 卡片滑过某阈值后,顶栏标题渐显
   const cardTitleRef = useRef(null);
@@ -80,8 +90,9 @@ export default function RouteDetailClient({ route }) {
             ? "bg-ink-50/90 backdrop-blur border-b border-ink-100"
             : "bg-transparent"
         }`} />
-        <Link
+        <a
           href="/"
+          onClick={onBack}
           aria-label="返回"
           className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition ${
             titleVisible
@@ -92,7 +103,7 @@ export default function RouteDetailClient({ route }) {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 6l-6 6 6 6" />
           </svg>
-        </Link>
+        </a>
         <div
           className={`min-w-0 flex-1 text-[15px] font-semibold text-ink-800 truncate transition-opacity duration-200 ${
             titleVisible ? "opacity-100" : "opacity-0"

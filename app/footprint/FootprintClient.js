@@ -12,117 +12,150 @@ export default function FootprintClient({ routes }) {
 
   const walkedRoutes = routes.filter((r) => fp.walked.includes(r.id));
   const wishedRoutes = routes.filter((r) => fp.wishlist.includes(r.id));
+  const isEmpty = stats.routeCount === 0 && wishedRoutes.length === 0;
 
   // 下一个解锁条件提示
   const nextBadge = (() => {
     if (stats.routeCount < 5)
-      return `走完 5 条解锁「上海漫游者」(还差 ${5 - stats.routeCount} 条)`;
+      return `走完 5 条解锁「上海漫游者」 · 还差 ${5 - stats.routeCount} 条`;
     if (stats.routeCount < 10)
-      return `走完 10 条解锁「深度漫游者」(还差 ${10 - stats.routeCount} 条)`;
+      return `走完 10 条解锁「深度漫游者」 · 还差 ${10 - stats.routeCount} 条`;
     return null;
   })();
 
+  // 进度条:朝下一个里程碑的百分比
+  const progressTo = stats.routeCount < 5 ? 5 : 10;
+  const progressPct = Math.min(100, (stats.routeCount / progressTo) * 100);
+
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-ink-400">
-        每次打开都能看到自己走到了哪里。
-      </p>
-
-      {/* 统计卡 */}
-      <div className="rounded-2xl bg-ink-800 text-ink-50 p-5">
-        <div className="grid grid-cols-3 gap-4 font-serif">
-          <div>
-            <div className="text-3xl font-bold">{stats.routeCount}</div>
-            <div className="text-xs text-ink-200 mt-1">路线</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold">{stats.distanceKm}</div>
-            <div className="text-xs text-ink-200 mt-1">公里</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold">{stats.stopCount}</div>
-            <div className="text-xs text-ink-200 mt-1">地点</div>
-          </div>
+    <div className="space-y-7">
+      {/* Hero 数据区 — 深色卡片,做成有体量感的"主角" */}
+      <section className="rounded-2xl bg-ink-800 p-5 shadow-sm">
+        <p className="text-xs text-ink-50/60 leading-relaxed tracking-wide">
+          每次打开都能看到自己走到了哪里
+        </p>
+        <div className="mt-4 grid grid-cols-3 gap-3 font-serif">
+          <Stat value={stats.routeCount} label="条路线" />
+          <Stat value={stats.distanceKm} label="公里" />
+          <Stat value={stats.stopCount} label="个地点" />
         </div>
+
+        {/* 进度条 + 下一个解锁 */}
         {nextBadge && (
-          <div className="mt-4 pt-4 border-t border-ink-600 text-xs text-ink-200">
-            {nextBadge}
-          </div>
-        )}
-      </div>
-
-      {/* 徽章 */}
-      <section>
-        <h2 className="font-serif text-base font-semibold text-ink-800 mb-2">
-          徽章 {badges.length > 0 && `· ${badges.length}`}
-        </h2>
-        {badges.length === 0 ? (
-          <div className="rounded-xl bg-ink-50 border border-dashed border-ink-200 p-6 text-center text-sm text-ink-400">
-            暂未解锁。走完 5 条路线开启第一枚徽章。
-          </div>
-        ) : (
-          <div className="flex gap-2 flex-wrap">
-            {badges.map((b) => (
+          <div className="mt-5">
+            <div className="h-1.5 rounded-full bg-ink-50/10 overflow-hidden">
               <div
-                key={b.id}
-                className="px-3 py-2 rounded-xl bg-brick-500 text-ink-50"
-              >
-                <div className="font-serif font-semibold text-sm">{b.title}</div>
-                <div className="text-[11px] opacity-90">{b.desc}</div>
-              </div>
-            ))}
+                className="h-full bg-brick-500 transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-ink-50/60">{nextBadge}</p>
           </div>
         )}
       </section>
 
-      {/* 想去清单 */}
-      <section>
-        <h2 className="font-serif text-base font-semibold text-ink-800 mb-2">
-          想去清单 {wishedRoutes.length > 0 && `· ${wishedRoutes.length}`}
-        </h2>
-        {wishedRoutes.length === 0 ? (
-          <div className="text-sm text-ink-400 py-4">
-            还没有收藏的路线。
-            <Link href="/" className="underline ml-1">
-              去看看
+      {/* 空态:整页只显示一段引导,避免一堆空板块堆叠 */}
+      {isEmpty ? (
+        <div className="rounded-2xl bg-white border border-dashed border-ink-200 p-8 text-center">
+          <div className="font-serif text-base text-ink-800">
+            还没有任何足迹
+          </div>
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed">
+            去看看{" "}
+            <Link href="/" className="text-brick-500 hover:underline">
+              全部路线
             </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {wishedRoutes.map((r) => (
-              <RouteCard
-                key={r.id}
-                route={r}
-                isWalked={fp.walked.includes(r.id)}
-                isWished
-              />
-            ))}
-          </div>
-        )}
-      </section>
+            ,选一条走走、收一条想去的,这里就会慢慢长出你自己的上海地图。
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* 徽章 */}
+          {badges.length > 0 && (
+            <section>
+              <SectionHeader title="徽章" count={badges.length} />
+              <div className="grid grid-cols-2 gap-2.5">
+                {badges.map((b) => (
+                  <div
+                    key={b.id}
+                    className="rounded-xl border border-brick-500/30 bg-brick-500/5 p-3"
+                  >
+                    <div className="font-serif text-sm font-semibold text-brick-600">
+                      {b.title}
+                    </div>
+                    <div className="mt-1 text-[11px] text-ink-400 leading-relaxed">
+                      {b.desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-      {/* 已走过 */}
-      <section>
-        <h2 className="font-serif text-base font-semibold text-ink-800 mb-2">
-          已走过 {walkedRoutes.length > 0 && `· ${walkedRoutes.length}`}
-        </h2>
-        {walkedRoutes.length === 0 ? (
-          <div className="text-sm text-ink-400 py-4">
-            走完一条后回来打勾,可以累积里程和徽章。
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {walkedRoutes.map((r) => (
-              <RouteCard
-                key={r.id}
-                route={r}
-                isWalked
-                isWished={fp.wishlist.includes(r.id)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+          {/* 想去清单 */}
+          {wishedRoutes.length > 0 && (
+            <section>
+              <SectionHeader title="想去清单" count={wishedRoutes.length} />
+              <div className="space-y-3">
+                {wishedRoutes.map((r) => (
+                  <RouteCard
+                    key={r.id}
+                    route={r}
+                    isWalked={fp.walked.includes(r.id)}
+                    isWished
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 已走过 */}
+          {walkedRoutes.length > 0 && (
+            <section>
+              <SectionHeader title="已走过" count={walkedRoutes.length} />
+              <div className="space-y-3">
+                {walkedRoutes.map((r) => (
+                  <RouteCard
+                    key={r.id}
+                    route={r}
+                    isWalked
+                    isWished={fp.wishlist.includes(r.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 引导:已用过但还没走完 */}
+          {walkedRoutes.length === 0 && wishedRoutes.length > 0 && (
+            <p className="text-xs text-ink-400 leading-relaxed text-center pt-2">
+              走完一条后回来打勾,就能累积里程和徽章。
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Stat({ value, label }) {
+  return (
+    <div>
+      <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
+        {value}
+      </div>
+      <div className="mt-1.5 text-[11px] text-ink-50/50">{label}</div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, count }) {
+  return (
+    <div className="mb-3 flex items-baseline gap-2">
+      <h2 className="font-serif text-base font-semibold text-ink-800">
+        {title}
+      </h2>
+      <span className="text-[11px] text-ink-400">· {count}</span>
     </div>
   );
 }
