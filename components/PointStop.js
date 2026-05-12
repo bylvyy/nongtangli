@@ -1,5 +1,13 @@
 "use client";
 
+function navigateUrl(stop) {
+  const [lat, lng] = stop.coords;
+  // 高德 URI scheme,手机有高德 app 会拉起,否则跳网页版
+  return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(
+    stop.name,
+  )}&src=nongtangli&coordinate=wgs84&callnative=1`;
+}
+
 export default function PointStop({ stop, index, total, onLocate, isFocused }) {
   return (
     <div
@@ -20,12 +28,22 @@ export default function PointStop({ stop, index, total, onLocate, isFocused }) {
         <h4 className="font-serif text-base font-semibold text-ink-800">
           {stop.name}
         </h4>
-        <button
-          onClick={() => onLocate?.(index)}
-          className="text-[11px] text-ink-400 hover:text-ink-800 shrink-0"
-        >
-          地图定位 →
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => onLocate?.(index)}
+            className="text-[11px] text-ink-400 hover:text-ink-800"
+          >
+            地图定位
+          </button>
+          <a
+            href={navigateUrl(stop)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11px] text-brick-500 hover:text-brick-600"
+          >
+            导航 →
+          </a>
+        </div>
       </div>
       <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{stop.story}</p>
       {stop.photos?.length > 0 && (

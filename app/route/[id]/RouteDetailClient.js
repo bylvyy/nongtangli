@@ -6,10 +6,16 @@ import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
 import RouteCover from "../../../components/RouteCover";
+import GuideControls from "../../../components/GuideControls";
+import { useGeolocation } from "../../../lib/useGeolocation";
+import { useDeviceHeading } from "../../../lib/useDeviceHeading";
 import { deriveIntensity } from "../../../lib/routes";
 
 export default function RouteDetailClient({ route }) {
   const [focus, setFocus] = useState(null);
+  const [follow, setFollow] = useState(false);
+  const geo = useGeolocation();
+  const heading = useDeviceHeading();
   const intensity = deriveIntensity(route.distanceKm);
 
   return (
@@ -57,13 +63,26 @@ export default function RouteDetailClient({ route }) {
       <RouteActions routeId={route.id} />
 
       {/* 整体路线图 */}
-      <section>
-        <h2 className="font-serif text-base font-semibold text-ink-800 mb-2">
+      <section className="space-y-3">
+        <h2 className="font-serif text-base font-semibold text-ink-800">
           整体路线
         </h2>
-        <MapView stops={route.stops} height={300} focusIndex={focus} />
-        <p className="mt-2 text-[11px] text-ink-400">
-          点击下方点位的 "地图定位" 可放大单点
+        <MapView
+          stops={route.stops}
+          height={300}
+          focusIndex={focus}
+          userPosition={geo.position}
+          userHeading={heading.heading}
+          follow={follow && geo.state === "watching"}
+        />
+        <GuideControls
+          geo={geo}
+          heading={heading}
+          follow={follow}
+          setFollow={setFollow}
+        />
+        <p className="text-[11px] text-ink-400">
+          点击下方点位的"地图定位"可放大单点 · 点"导航"用高德实时步行导航
         </p>
       </section>
 

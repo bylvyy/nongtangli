@@ -11,6 +11,6 @@ const MapInner = dynamic(() => import("./MapInner"), {
   ),
 });
 
-export default function MapView({ stops, height = 320, focusIndex }) {
-  return <MapInner stops={stops} height={height} focusIndex={focusIndex} />;
+export default function MapView(props) {
+  return <MapInner {...props} />;
 }
