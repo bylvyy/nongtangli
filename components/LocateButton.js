@@ -83,7 +83,7 @@ export default function LocateButton({ geo, heading, follow, setFollow }) {
   };
 
   return (
-    <div className="absolute bottom-3 right-3 z-[400] flex flex-col items-end gap-2">
+    <div className="absolute bottom-12 right-3 z-[400] flex flex-col items-end gap-2">
       {tip && (
         <div className="max-w-[240px] bg-ink-800 text-ink-50 text-[11px] px-3 py-2 rounded-lg shadow-lg leading-relaxed">
           {tip}

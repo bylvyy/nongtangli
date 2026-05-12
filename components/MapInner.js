@@ -108,14 +108,12 @@ export default function MapInner({
   );
 
   return (
-    <div
-      className="relative rounded-xl overflow-hidden border border-ink-100"
-      style={{ height }}
-    >
+    <div className="relative w-full h-full" style={typeof height === "number" ? { height } : null}>
       <MapContainer
         center={center}
         zoom={14}
         scrollWheelZoom={false}
+        zoomControl={false}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer

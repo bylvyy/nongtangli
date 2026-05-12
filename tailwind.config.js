@@ -25,8 +25,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        serif: ['"Noto Serif SC"', 'Georgia', 'serif'],
-        sans: ['"Inter"', '"PingFang SC"', '"Helvetica Neue"', 'sans-serif'],
+        serif: ['"Microsoft YaHei"', '"微软雅黑"', '"PingFang SC"', '"Helvetica Neue"', 'sans-serif'],
+        sans: ['"Microsoft YaHei"', '"微软雅黑"', '"PingFang SC"', '"Helvetica Neue"', 'sans-serif'],
       },
     },
   },

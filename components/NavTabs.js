@@ -11,7 +11,7 @@ const TABS = [
 export default function NavTabs() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 bg-ink-50/95 backdrop-blur border-t border-ink-100">
+    <nav className="fixed bottom-0 inset-x-0 z-[800] bg-ink-50/95 backdrop-blur border-t border-ink-100 pb-safe">
       <div className="max-w-2xl mx-auto grid grid-cols-2">
         {TABS.map((t) => {
           const active = t.match(pathname);
@@ -19,7 +19,7 @@ export default function NavTabs() {
             <Link
               key={t.href}
               href={t.href}
-              className={`py-3 text-center text-sm ${
+              className={`py-4 text-center text-base ${
                 active ? "text-ink-800 font-semibold" : "text-ink-400"
               }`}
             >

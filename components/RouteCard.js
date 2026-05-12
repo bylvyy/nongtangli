@@ -2,7 +2,7 @@ import Link from "next/link";
 import RouteCover from "./RouteCover";
 import { deriveIntensity } from "../lib/routes";
 
-export default function RouteCard({ route, isWalked, isWished }) {
+export default function RouteCard({ route, isWalked, isWished, distanceFromMe }) {
   const intensity = deriveIntensity(route.distanceKm);
   return (
     <Link
@@ -27,7 +27,13 @@ export default function RouteCard({ route, isWalked, isWished }) {
             <span>·</span>
             <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
             <span>·</span>
-            <span>{route.stops.length} 个点位</span>
+            <span>{route.stops.length} 个地点</span>
+            {typeof distanceFromMe === "number" && (
+              <>
+                <span>·</span>
+                <span>距我 {formatKm(distanceFromMe)}</span>
+              </>
+            )}
           </div>
         </div>
       </RouteCover>
@@ -45,4 +51,10 @@ export default function RouteCard({ route, isWalked, isWished }) {
       </div>
     </Link>
   );
+}
+
+function formatKm(km) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  if (km < 10) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
 }

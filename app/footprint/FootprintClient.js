@@ -24,12 +24,9 @@ export default function FootprintClient({ routes }) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-serif text-2xl font-bold text-ink-800">上海足迹</h1>
-        <p className="mt-1 text-sm text-ink-400">
-          每次打开都能看到自己走到了哪里
-        </p>
-      </header>
+      <p className="text-sm text-ink-400">
+        每次打开都能看到自己走到了哪里。
+      </p>
 
       {/* 统计卡 */}
       <div className="rounded-2xl bg-ink-800 text-ink-50 p-5">
@@ -44,7 +41,7 @@ export default function FootprintClient({ routes }) {
           </div>
           <div>
             <div className="text-3xl font-bold">{stats.stopCount}</div>
-            <div className="text-xs text-ink-200 mt-1">点位</div>
+            <div className="text-xs text-ink-200 mt-1">地点</div>
           </div>
         </div>
         {nextBadge && (

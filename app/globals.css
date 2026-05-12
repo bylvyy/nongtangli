@@ -2,20 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&family=Inter:wght@400;500;600&display=swap");
 @import "leaflet/dist/leaflet.css";
 
 html,
 body {
   background-color: #f7f6f2;
   color: #23211a;
-  font-family: "Inter", "PingFang SC", "Helvetica Neue", sans-serif;
+  font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Helvetica Neue",
+    sans-serif;
 }
 
 h1,
 h2,
-h3 {
-  font-family: "Noto Serif SC", Georgia, serif;
+h3,
+.font-serif {
+  font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Helvetica Neue",
+    sans-serif !important;
   letter-spacing: 0.01em;
 }
 
@@ -33,4 +35,9 @@ h3 {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* iOS 底部安全区 */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }

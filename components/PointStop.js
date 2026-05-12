@@ -11,8 +11,8 @@ function navigateUrl(stop) {
 export default function PointStop({ stop, index, total, onLocate, isFocused }) {
   return (
     <div
-      className={`relative pl-8 pb-6 ${
-        index === total - 1 ? "" : "border-l-2 border-dashed border-ink-200 ml-3"
+      className={`relative pl-8 pb-6 ml-3 ${
+        index === total - 1 ? "" : "border-l-2 border-dashed border-ink-200"
       }`}
     >
       <div
@@ -39,9 +39,23 @@ export default function PointStop({ stop, index, total, onLocate, isFocused }) {
             href={navigateUrl(stop)}
             target="_blank"
             rel="noreferrer"
-            className="text-[11px] text-brick-500 hover:text-brick-600"
+            className="inline-flex items-center gap-1 text-[11px] text-brick-500 hover:text-brick-600"
           >
-            导航 →
+            导航
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M3 8h10" />
+              <path d="M9 4l4 4-4 4" />
+            </svg>
           </a>
         </div>
       </div>

@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import RouteCard from "../components/RouteCard";
 import FilterBar from "../components/FilterBar";
-import { deriveIntensity } from "../lib/routes";
+import { deriveIntensity, nearestStopDistanceKm } from "../lib/routes";
 import { useFootprint } from "../lib/useFootprint";
+import { useGeolocation } from "../lib/useGeolocation";
 import { computeStats } from "../lib/footprint";
 
 export default function HomeClient({ newest, rest, themes, atmospheres }) {
@@ -15,22 +16,58 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
     atmosphere: null,
   });
   const [showFilter, setShowFilter] = useState(false);
+  const [sortBy, setSortBy] = useState("default"); // 'default' | 'distance'
   const fp = useFootprint();
+  const geo = useGeolocation();
   const allRoutes = [...newest, ...rest];
   const stats = computeStats(fp, allRoutes);
 
+  const userPoint = geo?.position?.coords;
+
+  // 给每条路线算一次最近距离(没定位则为 null)
+  const restWithDistance = useMemo(() => {
+    if (!userPoint) return rest.map((r) => ({ route: r, distanceKm: null }));
+    return rest.map((r) => ({
+      route: r,
+      distanceKm: nearestStopDistanceKm(r, userPoint),
+    }));
+  }, [rest, userPoint]);
+
   const filtered = useMemo(() => {
-    return rest.filter((r) => {
+    let list = restWithDistance.filter(({ route: r }) => {
       if (filter.theme && r.theme !== filter.theme) return false;
       if (filter.atmosphere && r.atmosphere !== filter.atmosphere) return false;
       if (filter.intensity && deriveIntensity(r.distanceKm) !== filter.intensity)
         return false;
       return true;
     });
-  }, [rest, filter]);
+    if (sortBy === "distance" && userPoint) {
+      list = [...list].sort((a, b) => a.distanceKm - b.distanceKm);
+    }
+    return list;
+  }, [restWithDistance, filter, sortBy, userPoint]);
 
   const filterActive =
     filter.theme || filter.intensity || filter.atmosphere;
+
+  function onSortDistance() {
+    if (sortBy === "distance") {
+      setSortBy("default");
+      return;
+    }
+    if (geo.state === "idle") geo.start();
+    setSortBy("distance");
+  }
+
+  const distanceLabel = (() => {
+    if (sortBy !== "distance") return "按距离";
+    if (geo.state === "requesting") return "定位中…";
+    if (geo.state === "denied") return "定位被拒";
+    if (geo.state === "unsupported") return "不支持定位";
+    if (geo.state === "error") return "定位失败";
+    if (geo.state === "watching") return "按距离 ✓";
+    return "按距离";
+  })();
 
   return (
     <div className="space-y-5">
@@ -53,7 +90,7 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
           </div>
           <div>
             <div className="text-2xl font-bold">{stats.stopCount}</div>
-            <div className="text-[11px] text-ink-200">个点位</div>
+            <div className="text-[11px] text-ink-200">个地点</div>
           </div>
           <div className="ml-auto text-xs text-ink-200">查看 →</div>
         </div>
@@ -85,13 +122,24 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
           <h2 className="font-serif text-lg font-semibold text-ink-800">
             全部路线
           </h2>
-          <button
-            onClick={() => setShowFilter((v) => !v)}
-            className="text-xs text-ink-400 hover:text-ink-800"
-          >
-            {showFilter ? "收起筛选" : "筛选"}
-            {filterActive ? " ·" : ""}
-          </button>
+          <div className="flex items-center gap-3 text-xs">
+            <button
+              onClick={onSortDistance}
+              className={`hover:text-ink-800 transition ${
+                sortBy === "distance" ? "text-brick-500 font-medium" : "text-ink-400"
+              }`}
+            >
+              {distanceLabel}
+            </button>
+            <span className="text-ink-200">|</span>
+            <button
+              onClick={() => setShowFilter((v) => !v)}
+              className="text-ink-400 hover:text-ink-800"
+            >
+              {showFilter ? "收起筛选" : "筛选"}
+              {filterActive ? " ·" : ""}
+            </button>
+          </div>
         </div>
 
         {showFilter && (
@@ -106,12 +154,17 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
         )}
 
         <div className="space-y-3">
-          {filtered.map((r) => (
+          {filtered.map(({ route: r, distanceKm }) => (
             <RouteCard
               key={r.id}
               route={r}
               isWalked={fp.walked.includes(r.id)}
               isWished={fp.wishlist.includes(r.id)}
+              distanceFromMe={
+                sortBy === "distance" && typeof distanceKm === "number"
+                  ? distanceKm
+                  : undefined
+              }
             />
           ))}
           {filtered.length === 0 && (
