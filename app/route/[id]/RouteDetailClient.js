@@ -5,6 +5,7 @@ import Link from "next/link";
 import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
+import RouteCover from "../../../components/RouteCover";
 import { deriveIntensity } from "../../../lib/routes";
 
 export default function RouteDetailClient({ route }) {
@@ -21,37 +22,36 @@ export default function RouteDetailClient({ route }) {
       </Link>
 
       {/* 顶部信息卡 */}
-      <header
-        className="rounded-2xl p-5 text-ink-50"
-        style={{
-          background: `linear-gradient(135deg, ${route.coverColor} 0%, #23211a 100%)`,
-        }}
-      >
-        <h1 className="font-serif text-2xl font-bold leading-snug">
-          {route.name}
-        </h1>
-        <p className="mt-2 text-sm text-ink-100">{route.hook}</p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
-            {route.theme}
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
-            {intensity}
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
-            {route.atmosphere}
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
-            {route.district}
-          </span>
-        </div>
-        <div className="mt-3 flex items-center gap-3 text-xs text-ink-100">
-          <span>{route.distanceKm} km</span>
-          <span>·</span>
-          <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
-          <span>·</span>
-          <span>{route.stops.length} 个点位</span>
-        </div>
+      <header className="rounded-2xl overflow-hidden">
+        <RouteCover route={route} className="aspect-[16/10]">
+          <div className="absolute inset-0 p-5 flex flex-col justify-end text-ink-50">
+            <h1 className="font-serif text-2xl font-bold leading-snug drop-shadow">
+              {route.name}
+            </h1>
+            <p className="mt-2 text-sm text-ink-100">{route.hook}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+                {route.theme}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+                {intensity}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+                {route.atmosphere}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+                {route.district}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center gap-3 text-xs text-ink-100">
+              <span>{route.distanceKm} km</span>
+              <span>·</span>
+              <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
+              <span>·</span>
+              <span>{route.stops.length} 个点位</span>
+            </div>
+          </div>
+        </RouteCover>
       </header>
 
       <RouteActions routeId={route.id} />

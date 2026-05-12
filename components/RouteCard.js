@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RouteCover from "./RouteCover";
 import { deriveIntensity } from "../lib/routes";
 
 export default function RouteCard({ route, isWalked, isWished }) {
@@ -6,27 +7,22 @@ export default function RouteCard({ route, isWalked, isWished }) {
   return (
     <Link
       href={`/route/${route.id}`}
-      className="block rounded-2xl border border-ink-100 bg-white hover:border-ink-200 transition overflow-hidden"
+      className="block rounded-2xl border border-ink-100 bg-white hover:border-ink-200 transition overflow-hidden shadow-sm"
     >
-      <div
-        className="h-24 relative"
-        style={{
-          background: `linear-gradient(135deg, ${route.coverColor} 0%, #23211a 100%)`,
-        }}
-      >
+      <RouteCover route={route} className="h-44">
         <div className="absolute inset-0 p-3 flex flex-col justify-between text-ink-50">
           <div className="flex gap-1.5 flex-wrap">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
               {route.theme}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
               {intensity}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 backdrop-blur">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
               {route.atmosphere}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] opacity-90">
+          <div className="flex items-center gap-2 text-[11px] opacity-95">
             <span>{route.distanceKm} km</span>
             <span>·</span>
             <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
@@ -34,7 +30,7 @@ export default function RouteCard({ route, isWalked, isWished }) {
             <span>{route.stops.length} 个点位</span>
           </div>
         </div>
-      </div>
+      </RouteCover>
       <div className="p-3">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-serif text-base font-semibold text-ink-800 leading-snug">
