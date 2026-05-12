@@ -13,6 +13,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { getWalkingPath } from "../lib/walkingRoute";
+import LocateButton from "./LocateButton";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -67,10 +68,13 @@ export default function MapInner({
   stops,
   height,
   focusIndex,
-  userPosition,
-  userHeading,
+  geo,
+  heading,
   follow,
+  setFollow,
 }) {
+  const userPosition = geo?.position;
+  const userHeading = heading?.heading;
   const center = useMemo(() => {
     if (!stops?.length) return [31.2304, 121.4737];
     return stops[0].coords;
@@ -197,6 +201,15 @@ export default function MapInner({
         <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[11px] text-ink-600 border border-ink-100">
           仅供参考,以实际道路为准
         </div>
+      )}
+
+      {geo && heading && (
+        <LocateButton
+          geo={geo}
+          heading={heading}
+          follow={follow}
+          setFollow={setFollow}
+        />
       )}
     </div>
   );
