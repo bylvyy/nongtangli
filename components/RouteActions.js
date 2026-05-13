@@ -2,9 +2,11 @@
 
 import { useFootprint } from "../lib/useFootprint";
 import { toggleWalked, toggleWishlist } from "../lib/footprint";
+import { useT } from "../lib/i18n";
 
 export default function RouteActions({ routeId }) {
   const fp = useFootprint();
+  const { t } = useT();
   const walked = fp.walked.includes(routeId);
   const wished = fp.wishlist.includes(routeId);
 
@@ -18,7 +20,7 @@ export default function RouteActions({ routeId }) {
             : "bg-ink-50 text-ink-800 border border-ink-200"
         }`}
       >
-        {walked ? "✓ 已走过" : "标记走过"}
+        {walked ? t("detail.actions.walked") : t("detail.actions.markWalked")}
       </button>
       <button
         onClick={() => toggleWishlist(routeId)}
@@ -28,7 +30,7 @@ export default function RouteActions({ routeId }) {
             : "bg-ink-50 text-ink-800 border border-ink-200"
         }`}
       >
-        {wished ? "★ 在清单中" : "加入想去清单"}
+        {wished ? t("detail.actions.wished") : t("detail.actions.addWish")}
       </button>
     </div>
   );

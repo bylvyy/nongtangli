@@ -14,6 +14,8 @@ import {
 import L from "leaflet";
 import { getWalkingPath, getWalkingPathSync } from "../lib/walkingRoute";
 import { pointWgsToGcj } from "../lib/coords";
+import { useT } from "../lib/i18n";
+import { localizeField } from "../lib/routes";
 import LocateButton from "./LocateButton";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -75,14 +77,16 @@ export default function MapInner({
   follow,
   setFollow,
 }) {
+  const { lang } = useT();
   // 数据源里 stops.coords 是 WGS84,显示在国产地图上需要转 GCJ-02
   const stopsGcj = useMemo(
     () =>
       stops?.map((s) => ({
         ...s,
         coords: pointWgsToGcj(s.coords),
+        displayName: localizeField(s, "name", lang),
       })),
-    [stops],
+    [stops, lang],
   );
 
   // 浏览器 Geolocation 也是 WGS84
@@ -180,7 +184,7 @@ export default function MapInner({
               className="!bg-white !text-ink-800 !border-ink-200 !shadow-sm"
             >
               <span className="text-[11px]">
-                {i + 1}. {s.name}
+                {i + 1}. {s.displayName}
               </span>
             </Tooltip>
           </CircleMarker>

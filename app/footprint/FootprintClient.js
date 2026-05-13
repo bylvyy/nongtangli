@@ -4,8 +4,11 @@ import Link from "next/link";
 import RouteCard from "../../components/RouteCard";
 import { useFootprint } from "../../lib/useFootprint";
 import { computeStats, computeBadges } from "../../lib/footprint";
+import { useT } from "../../lib/i18n";
+import { localizeDistrict } from "../../lib/routes";
 
 export default function FootprintClient({ routes }) {
+  const { t, lang } = useT();
   const fp = useFootprint();
   const stats = computeStats(fp, routes);
   const badges = computeBadges(fp, routes);
@@ -17,9 +20,9 @@ export default function FootprintClient({ routes }) {
   // 下一个解锁条件提示
   const nextBadge = (() => {
     if (stats.routeCount < 5)
-      return `走完 5 条解锁「上海漫游者」 · 还差 ${5 - stats.routeCount} 条`;
+      return t("footprint.next.5", { n: 5 - stats.routeCount });
     if (stats.routeCount < 10)
-      return `走完 10 条解锁「深度漫游者」 · 还差 ${10 - stats.routeCount} 条`;
+      return t("footprint.next.10", { n: 10 - stats.routeCount });
     return null;
   })();
 
@@ -27,17 +30,41 @@ export default function FootprintClient({ routes }) {
   const progressTo = stats.routeCount < 5 ? 5 : 10;
   const progressPct = Math.min(100, (stats.routeCount / progressTo) * 100);
 
+  function localizeBadge(b) {
+    if (b.id === "wanderer") {
+      return { title: t("badge.wanderer"), desc: t("badge.wanderer.desc") };
+    }
+    if (b.id === "deep-walker") {
+      return {
+        title: t("badge.deepWalker"),
+        desc: t("badge.deepWalker.desc"),
+      };
+    }
+    if (b.id.startsWith("district-")) {
+      const district = b.id.slice("district-".length);
+      const localized = localizeDistrict(district, lang);
+      // 从 desc 里抽走到的路线数(原 desc: "走完 XX 全部 N 条路线")
+      const m = b.desc.match(/(\d+)/);
+      const n = m ? Number(m[1]) : 0;
+      return {
+        title: t("badge.districtRegular", { district: localized }),
+        desc: t("badge.districtRegular.desc", { district: localized, n }),
+      };
+    }
+    return { title: b.title, desc: b.desc };
+  }
+
   return (
     <div className="space-y-7">
       {/* Hero 数据区 — 深色卡片,做成有体量感的"主角" */}
       <section className="rounded-2xl bg-ink-800 p-5 shadow-sm">
         <p className="text-xs text-ink-50/60 leading-relaxed tracking-wide">
-          每次打开都能看到自己走到了哪里
+          {t("footprint.subtitle")}
         </p>
         <div className="mt-4 grid grid-cols-3 gap-3 font-serif">
-          <Stat value={stats.routeCount} label="条路线" />
-          <Stat value={stats.distanceKm} label="公里" />
-          <Stat value={stats.stopCount} label="个地点" />
+          <Stat value={stats.routeCount} label={t("stats.routes")} />
+          <Stat value={stats.distanceKm} label={t("stats.km")} />
+          <Stat value={stats.stopCount} label={t("stats.stops")} />
         </div>
 
         {/* 进度条 + 下一个解锁 */}
@@ -58,14 +85,14 @@ export default function FootprintClient({ routes }) {
       {isEmpty ? (
         <div className="rounded-2xl bg-white border border-dashed border-ink-200 p-8 text-center">
           <div className="font-serif text-base text-ink-800">
-            还没有任何足迹
+            {t("footprint.empty.title")}
           </div>
           <p className="mt-2 text-sm text-ink-400 leading-relaxed">
-            去看看{" "}
+            {t("footprint.empty.body.before")}
             <Link href="/" className="text-brick-500 hover:underline">
-              全部路线
+              {t("footprint.empty.body.linkText")}
             </Link>
-            ,选一条走走、收一条想去的,这里就会慢慢长出你自己的上海地图。
+            {t("footprint.empty.body.after")}
           </p>
         </div>
       ) : (
@@ -73,21 +100,27 @@ export default function FootprintClient({ routes }) {
           {/* 徽章 */}
           {badges.length > 0 && (
             <section>
-              <SectionHeader title="徽章" count={badges.length} />
+              <SectionHeader
+                title={t("footprint.section.badges")}
+                count={badges.length}
+              />
               <div className="grid grid-cols-2 gap-2.5">
-                {badges.map((b) => (
-                  <div
-                    key={b.id}
-                    className="rounded-xl border border-brick-500/30 bg-brick-500/5 p-3"
-                  >
-                    <div className="font-serif text-sm font-semibold text-brick-600">
-                      {b.title}
+                {badges.map((b) => {
+                  const loc = localizeBadge(b);
+                  return (
+                    <div
+                      key={b.id}
+                      className="rounded-xl border border-brick-500/30 bg-brick-500/5 p-3"
+                    >
+                      <div className="font-serif text-sm font-semibold text-brick-600">
+                        {loc.title}
+                      </div>
+                      <div className="mt-1 text-[11px] text-ink-400 leading-relaxed">
+                        {loc.desc}
+                      </div>
                     </div>
-                    <div className="mt-1 text-[11px] text-ink-400 leading-relaxed">
-                      {b.desc}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -95,7 +128,10 @@ export default function FootprintClient({ routes }) {
           {/* 想去清单 */}
           {wishedRoutes.length > 0 && (
             <section>
-              <SectionHeader title="想去清单" count={wishedRoutes.length} />
+              <SectionHeader
+                title={t("footprint.section.wishlist")}
+                count={wishedRoutes.length}
+              />
               <div className="space-y-3">
                 {wishedRoutes.map((r) => (
                   <RouteCard
@@ -112,7 +148,10 @@ export default function FootprintClient({ routes }) {
           {/* 已走过 */}
           {walkedRoutes.length > 0 && (
             <section>
-              <SectionHeader title="已走过" count={walkedRoutes.length} />
+              <SectionHeader
+                title={t("footprint.section.walked")}
+                count={walkedRoutes.length}
+              />
               <div className="space-y-3">
                 {walkedRoutes.map((r) => (
                   <RouteCard
@@ -129,7 +168,7 @@ export default function FootprintClient({ routes }) {
           {/* 引导:已用过但还没走完 */}
           {walkedRoutes.length === 0 && wishedRoutes.length > 0 && (
             <p className="text-xs text-ink-400 leading-relaxed text-center pt-2">
-              走完一条后回来打勾,就能累积里程和徽章。
+              {t("footprint.guide.markAfterWalk")}
             </p>
           )}
         </>

@@ -1,10 +1,12 @@
 import "./globals.css";
 import NavTabs from "../components/NavTabs";
 import GlobalHeader from "../components/GlobalHeader";
+import HtmlLangSync from "../components/HtmlLangSync";
 
 export const metadata = {
-  title: "弄堂里 · 上海街区漫游",
-  description: "Citywalk 不是消费主义,所以这里没有一条路线的人均超过 300。",
+  title: "Nongtangli · Shanghai citywalk / 上海街区漫游",
+  description:
+    "Citywalk isn't consumerism — no route here costs more than ¥300 per person.",
 };
 
 export const viewport = {
@@ -15,8 +17,9 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className="min-h-screen pb-28">
+        <HtmlLangSync />
         <GlobalHeader />
         <main className="max-w-2xl mx-auto px-4 py-4">{children}</main>
         <NavTabs />

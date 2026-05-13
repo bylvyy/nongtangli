@@ -1,14 +1,20 @@
 "use client";
 
-function navigateUrl(stop) {
+import { useT } from "../lib/i18n";
+import { localizeField } from "../lib/routes";
+
+function navigateUrl(stop, displayName) {
   const [lat, lng] = stop.coords;
   // 高德 URI scheme,手机有高德 app 会拉起,否则跳网页版
   return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(
-    stop.name,
+    displayName,
   )}&src=nongtangli&coordinate=wgs84&callnative=1`;
 }
 
 export default function PointStop({ stop, index, total, onLocate, isFocused }) {
+  const { t, lang } = useT();
+  const name = localizeField(stop, "name", lang);
+  const story = localizeField(stop, "story", lang);
   return (
     <div
       className={`relative pl-8 pb-6 ml-3 ${
@@ -26,22 +32,22 @@ export default function PointStop({ stop, index, total, onLocate, isFocused }) {
       </div>
       <div className="flex items-baseline justify-between gap-2">
         <h4 className="font-serif text-base font-semibold text-ink-800">
-          {stop.name}
+          {name}
         </h4>
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => onLocate?.(index)}
             className="text-[11px] text-ink-400 hover:text-ink-800"
           >
-            地图定位
+            {t("stop.locate")}
           </button>
           <a
-            href={navigateUrl(stop)}
+            href={navigateUrl(stop, name)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 text-[11px] text-brick-500 hover:text-brick-600"
           >
-            导航
+            {t("stop.navigate")}
             <svg
               width="11"
               height="11"
@@ -59,7 +65,7 @@ export default function PointStop({ stop, index, total, onLocate, isFocused }) {
           </a>
         </div>
       </div>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{stop.story}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{story}</p>
       {stop.photos?.length > 0 && (
         <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar">
           {stop.photos.map((p, i) => (

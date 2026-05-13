@@ -5,17 +5,30 @@ import { useRouter } from "next/navigation";
 import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
+import LangToggle from "../../../components/LangToggle";
 import { useGeolocation } from "../../../lib/useGeolocation";
 import { useDeviceHeading } from "../../../lib/useDeviceHeading";
-import { deriveIntensity } from "../../../lib/routes";
+import {
+  deriveIntensity,
+  localizeAtmosphere,
+  localizeDistrict,
+  localizeField,
+  localizeIntensity,
+  localizeTheme,
+} from "../../../lib/routes";
+import { useT } from "../../../lib/i18n";
 
 export default function RouteDetailClient({ route }) {
+  const { t, lang } = useT();
   const [focus, setFocus] = useState(null);
   const [follow, setFollow] = useState(false);
   const geo = useGeolocation();
   const heading = useDeviceHeading();
   const router = useRouter();
   const intensity = deriveIntensity(route.distanceKm);
+
+  const name = localizeField(route, "name", lang);
+  const hook = localizeField(route, "hook", lang);
 
   function onBack(e) {
     e.preventDefault();
@@ -63,11 +76,7 @@ export default function RouteDetailClient({ route }) {
         ok = false;
       }
     }
-    showToast(
-      ok
-        ? "复制成功,发给好友一起解锁路线吧"
-        : "复制失败,请手动长按链接复制",
-    );
+    showToast(ok ? t("detail.share.success") : t("detail.share.fail"));
   }
 
   useEffect(() => {
@@ -93,7 +102,7 @@ export default function RouteDetailClient({ route }) {
         <a
           href="/"
           onClick={onBack}
-          aria-label="返回"
+          aria-label={t("nav.back")}
           className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition ${
             titleVisible
               ? "text-ink-800 hover:bg-ink-100"
@@ -110,12 +119,19 @@ export default function RouteDetailClient({ route }) {
           }`}
           aria-hidden={!titleVisible}
         >
-          {route.name}
+          {name}
         </div>
+        <LangToggle
+          className={
+            titleVisible
+              ? ""
+              : "bg-white/90 backdrop-blur border-transparent shadow"
+          }
+        />
         <button
           type="button"
           onClick={onShare}
-          aria-label="分享路线"
+          aria-label={t("nav.share")}
           className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition ${
             titleVisible
               ? "text-ink-800 hover:bg-ink-100"
@@ -165,34 +181,44 @@ export default function RouteDetailClient({ route }) {
           {/* 标题区 */}
           <header ref={cardTitleRef} className="pt-2">
             <h1 className="font-serif text-2xl font-bold text-ink-800 leading-snug">
-              {route.name}
+              {name}
             </h1>
-            <p className="mt-2 text-sm text-ink-600">{route.hook}</p>
+            <p className="mt-2 text-sm text-ink-600">{hook}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="tag-chip">{route.theme}</span>
-              <span className="tag-chip">{intensity}</span>
-              <span className="tag-chip">{route.atmosphere}</span>
-              <span className="tag-chip">{route.district}</span>
+              <span className="tag-chip">{localizeTheme(route.theme, lang)}</span>
+              <span className="tag-chip">
+                {localizeIntensity(intensity, lang)}
+              </span>
+              <span className="tag-chip">
+                {localizeAtmosphere(route.atmosphere, lang)}
+              </span>
+              <span className="tag-chip">
+                {localizeDistrict(route.district, lang)}
+              </span>
             </div>
             <div className="mt-3 flex items-center gap-3 text-xs text-ink-400">
               <span>{route.distanceKm} km</span>
               <span>·</span>
-              <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
+              <span>
+                {t("card.hours", { n: Math.round(route.durationMin / 30) / 2 })}
+              </span>
               <span>·</span>
-              <span>{route.stops.length} 个地点</span>
+              <span>
+                {route.stops.length} {t("stats.stops")}
+              </span>
             </div>
           </header>
 
           <RouteActions routeId={route.id} />
 
           <p className="text-[11px] text-ink-400 leading-relaxed">
-            地图右下圆形按钮定位到我 · 下方"地图定位"放大单点 · "导航"拉起高德步行
+            {t("detail.tip")}
           </p>
 
           {/* 地点序列 */}
           <section>
             <h2 className="font-serif text-base font-semibold text-ink-800 mb-3">
-              地点顺序
+              {t("detail.section.stops")}
             </h2>
             <div>
               {route.stops.map((s, i) => (

@@ -8,8 +8,10 @@ import { deriveIntensity, nearestStopDistanceKm } from "../lib/routes";
 import { useFootprint } from "../lib/useFootprint";
 import { useGeolocation } from "../lib/useGeolocation";
 import { computeStats } from "../lib/footprint";
+import { useT } from "../lib/i18n";
 
 export default function HomeClient({ newest, rest, themes, atmospheres }) {
+  const { t } = useT();
   const [filter, setFilter] = useState({
     theme: null,
     intensity: null,
@@ -60,13 +62,13 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
   }
 
   const distanceLabel = (() => {
-    if (sortBy !== "distance") return "按距离";
-    if (geo.state === "requesting") return "定位中…";
-    if (geo.state === "denied") return "定位被拒";
-    if (geo.state === "unsupported") return "不支持定位";
-    if (geo.state === "error") return "定位失败";
-    if (geo.state === "watching") return "按距离 ✓";
-    return "按距离";
+    if (sortBy !== "distance") return t("home.sortByDistance");
+    if (geo.state === "requesting") return t("home.sortByDistance.locating");
+    if (geo.state === "denied") return t("home.sortByDistance.denied");
+    if (geo.state === "unsupported") return t("home.sortByDistance.unsupported");
+    if (geo.state === "error") return t("home.sortByDistance.error");
+    if (geo.state === "watching") return t("home.sortByDistance.active");
+    return t("home.sortByDistance");
   })();
 
   return (
@@ -77,9 +79,11 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
         className="block rounded-2xl bg-ink-800 p-5 hover:bg-ink-700 transition group shadow-sm"
       >
         <div className="flex items-baseline justify-between">
-          <div className="text-xs text-ink-50/60 tracking-wide">我的上海足迹</div>
+          <div className="text-xs text-ink-50/60 tracking-wide">
+            {t("home.myFootprint")}
+          </div>
           <div className="text-xs text-ink-50/60 group-hover:text-ink-50 transition">
-            查看 →
+            {t("nav.viewAll")}
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3 font-serif">
@@ -87,19 +91,25 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
             <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
               {stats.routeCount}
             </div>
-            <div className="mt-1.5 text-[11px] text-ink-50/50">条路线</div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">
+              {t("stats.routes")}
+            </div>
           </div>
           <div>
             <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
               {stats.distanceKm}
             </div>
-            <div className="mt-1.5 text-[11px] text-ink-50/50">公里</div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">
+              {t("stats.km")}
+            </div>
           </div>
           <div>
             <div className="text-3xl font-semibold text-ink-50 leading-none tabular-nums">
               {stats.stopCount}
             </div>
-            <div className="mt-1.5 text-[11px] text-ink-50/50">个地点</div>
+            <div className="mt-1.5 text-[11px] text-ink-50/50">
+              {t("stats.stops")}
+            </div>
           </div>
         </div>
       </Link>
@@ -108,9 +118,11 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
       <section>
         <div className="flex items-baseline justify-between mb-2">
           <h2 className="font-serif text-lg font-semibold text-ink-800">
-            本周新上线
+            {t("home.thisWeek")}
           </h2>
-          <span className="text-[11px] text-ink-400">每周 1-2 条</span>
+          <span className="text-[11px] text-ink-400">
+            {t("home.thisWeek.note")}
+          </span>
         </div>
         <div className="space-y-3">
           {newest.map((r) => (
@@ -128,7 +140,7 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
       <section>
         <div className="flex items-baseline justify-between mb-2">
           <h2 className="font-serif text-lg font-semibold text-ink-800">
-            全部路线
+            {t("home.allRoutes")}
           </h2>
           <div className="flex items-center gap-3 text-xs">
             <button
@@ -144,7 +156,7 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
               onClick={() => setShowFilter((v) => !v)}
               className="text-ink-400 hover:text-ink-800"
             >
-              {showFilter ? "收起筛选" : "筛选"}
+              {showFilter ? t("home.filter.collapse") : t("home.filter")}
               {filterActive ? " ·" : ""}
             </button>
           </div>
@@ -177,16 +189,16 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
           ))}
           {filtered.length === 0 && (
             <div className="text-sm text-ink-400 py-8 text-center">
-              暂无符合筛选的路线
+              {t("home.filter.empty")}
             </div>
           )}
         </div>
       </section>
 
       <footer className="pt-6 pb-2 text-[11px] text-ink-400 text-center leading-relaxed">
-        Citywalk 不是消费主义,所以这里没有一条路线的人均超过 300。
+        {t("app.footer.principle")}
         <br />
-        每周新增 1-2 条 · 每月至少 1 条非梧桐区路线
+        {t("app.footer.cadence")}
       </footer>
     </div>
   );

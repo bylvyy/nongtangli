@@ -1,9 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import RouteCover from "./RouteCover";
-import { deriveIntensity } from "../lib/routes";
+import {
+  deriveIntensity,
+  localizeAtmosphere,
+  localizeField,
+  localizeIntensity,
+  localizeTheme,
+} from "../lib/routes";
+import { useT } from "../lib/i18n";
 
 export default function RouteCard({ route, isWalked, isWished, distanceFromMe }) {
+  const { t, lang } = useT();
   const intensity = deriveIntensity(route.distanceKm);
+  const name = localizeField(route, "name", lang);
+  const hook = localizeField(route, "hook", lang);
   return (
     <Link
       href={`/route/${route.id}`}
@@ -13,25 +25,31 @@ export default function RouteCard({ route, isWalked, isWished, distanceFromMe })
         <div className="absolute inset-0 p-3 flex flex-col justify-between text-ink-50">
           <div className="flex gap-1.5 flex-wrap">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
-              {route.theme}
+              {localizeTheme(route.theme, lang)}
             </span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
-              {intensity}
+              {localizeIntensity(intensity, lang)}
             </span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
-              {route.atmosphere}
+              {localizeAtmosphere(route.atmosphere, lang)}
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px] opacity-95">
             <span>{route.distanceKm} km</span>
             <span>·</span>
-            <span>{Math.round(route.durationMin / 30) / 2} 小时</span>
+            <span>
+              {t("card.hours", { n: Math.round(route.durationMin / 30) / 2 })}
+            </span>
             <span>·</span>
-            <span>{route.stops.length} 个地点</span>
+            <span>
+              {route.stops.length} {t("stats.stops")}
+            </span>
             {typeof distanceFromMe === "number" && (
               <>
                 <span>·</span>
-                <span>距我 {formatKm(distanceFromMe)}</span>
+                <span>
+                  {t("card.distFromMe", { dist: formatKm(distanceFromMe) })}
+                </span>
               </>
             )}
           </div>
@@ -40,14 +58,18 @@ export default function RouteCard({ route, isWalked, isWished, distanceFromMe })
       <div className="p-3">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-serif text-base font-semibold text-ink-800 leading-snug">
-            {route.name}
+            {name}
           </h3>
           <div className="flex gap-1 shrink-0">
-            {isWished && <span className="text-xs text-brick-500">·想去</span>}
-            {isWalked && <span className="text-xs text-moss-600">·已走</span>}
+            {isWished && (
+              <span className="text-xs text-brick-500">{t("card.wished")}</span>
+            )}
+            {isWalked && (
+              <span className="text-xs text-moss-600">{t("card.walked")}</span>
+            )}
           </div>
         </div>
-        <p className="mt-1 text-sm text-ink-600">{route.hook}</p>
+        <p className="mt-1 text-sm text-ink-600">{hook}</p>
       </div>
     </Link>
   );
