@@ -6,6 +6,7 @@ import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
 import LangToggle from "../../../components/LangToggle";
+import RatingWidget from "../../../components/RatingWidget";
 import { useGeolocation } from "../../../lib/useGeolocation";
 import { useDeviceHeading } from "../../../lib/useDeviceHeading";
 import {
@@ -236,6 +237,8 @@ export default function RouteDetailClient({ route }) {
               ))}
             </div>
           </section>
+
+          <RatingWidget routeId={route.id} />
         </div>
       </div>
     </div>
