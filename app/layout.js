@@ -2,6 +2,7 @@ import "./globals.css";
 import NavTabs from "../components/NavTabs";
 import GlobalHeader from "../components/GlobalHeader";
 import HtmlLangSync from "../components/HtmlLangSync";
+import FeedbackButton from "../components/FeedbackButton";
 
 export const metadata = {
   title: "Nongtangli · Shanghai citywalk / 上海街区漫游",
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
         <HtmlLangSync />
         <GlobalHeader />
         <main className="max-w-2xl mx-auto px-4 py-4">{children}</main>
+        <FeedbackButton />
         <NavTabs />
       </body>
     </html>
