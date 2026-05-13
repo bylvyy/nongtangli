@@ -12,7 +12,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { getWalkingPath } from "../lib/walkingRoute";
+import { getWalkingPath, getWalkingPathSync } from "../lib/walkingRoute";
 import { pointWgsToGcj } from "../lib/coords";
 import LocateButton from "./LocateButton";
 
@@ -67,6 +67,7 @@ function buildUserIcon(heading) {
 
 export default function MapInner({
   stops,
+  routeId,
   height,
   focusIndex,
   geo,
@@ -98,27 +99,26 @@ export default function MapInner({
     return stopsGcj[0].coords;
   }, [stopsGcj]);
 
-  const [walkPath, setWalkPath] = useState(null);
-  const [walkStatus, setWalkStatus] = useState("loading");
+  // 优先用同步可得的轨迹(预计算 / localStorage)— 进入即渲染,无网络等待。
+  // 没拿到才走异步获取(动态加路线、且尚未重新 build 时的兜底)。
+  const initialPath = useMemo(
+    () => getWalkingPathSync(routeId, stops),
+    [routeId, stops],
+  );
+  const [walkPath, setWalkPath] = useState(initialPath);
 
   useEffect(() => {
+    setWalkPath(initialPath);
+    if (initialPath) return; // 已有轨迹,无需再请求
     let cancelled = false;
-    setWalkStatus("loading");
-    setWalkPath(null);
-    // 步行规划传 WGS84 原始坐标,getWalkingPath 内部会处理坐标系
-    getWalkingPath(stops).then((path) => {
-      if (cancelled) return;
-      if (path) {
-        setWalkPath(path);
-        setWalkStatus("ok");
-      } else {
-        setWalkStatus("fallback");
-      }
+    getWalkingPath(stops, routeId).then((path) => {
+      if (cancelled || !path) return;
+      setWalkPath(path);
     });
     return () => {
       cancelled = true;
     };
-  }, [stops]);
+  }, [stops, routeId, initialPath]);
 
   const straightLine = stopsGcj?.map((s) => s.coords);
   const userIcon = useMemo(
@@ -155,7 +155,7 @@ export default function MapInner({
             pathOptions={{
               color: "#8f4127",
               weight: 2,
-              opacity: walkStatus === "loading" ? 0.25 : 0.5,
+              opacity: 0.5,
               dashArray: "6 6",
             }}
           />
@@ -211,11 +211,6 @@ export default function MapInner({
         />
       </MapContainer>
 
-      {walkStatus === "loading" && (
-        <div className="absolute top-2 right-2 z-[400] bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[11px] text-ink-600 border border-ink-100">
-          正在生成步行路径…
-        </div>
-      )}
 
       {geo && heading && (
         <LocateButton

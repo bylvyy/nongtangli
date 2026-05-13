@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "precompute": "node scripts/precompute-walking.mjs",
+    "prebuild": "node scripts/precompute-walking.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
