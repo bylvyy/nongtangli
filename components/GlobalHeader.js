@@ -9,8 +9,9 @@ export default function GlobalHeader() {
   const pathname = usePathname() || "/";
   const { t } = useT();
 
-  // 路线详情页用自己的顶栏
+  // 路线详情页用自己的顶栏; 后台用 admin 自己的 chrome
   if (pathname.startsWith("/route/")) return null;
+  if (pathname.startsWith("/admin")) return null;
 
   const isFootprint = pathname.startsWith("/footprint");
 

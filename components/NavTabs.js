@@ -8,6 +8,7 @@ export default function NavTabs() {
   const pathname = usePathname() || "/";
   const { t } = useT();
   if (pathname.startsWith("/route/")) return null;
+  if (pathname.startsWith("/admin")) return null;
   const tabs = [
     {
       href: "/",
