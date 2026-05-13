@@ -1,17 +1,21 @@
-// GET  /api/admin/routes        — list all routes (incl. drafts)
-// POST /api/admin/routes        — create or replace a route + its stops
-//
-// The POST body is the same shape returned by GET /api/routes/:id, plus an
-// optional `isPublished` flag. Stops are fully replaced on every save —
-// simpler than a diff, and a route has at most ~10 stops.
+import {
+  badRequest,
+  deriveIntensity,
+  getEnv,
+  json,
+  rowsToRoute,
+  safeJson,
+  serverError,
+} from "@/lib/server/db";
 
-import { badRequest, deriveIntensity, json, rowsToRoute, safeJson, serverError } from '../../../_lib/db.js';
+export const runtime = "edge";
 
-export async function onRequestGet({ env }) {
+export async function GET() {
+  const env = getEnv();
   try {
     const [routes, stops] = await Promise.all([
-      env.DB.prepare('SELECT * FROM routes ORDER BY published_at DESC').all(),
-      env.DB.prepare('SELECT * FROM stops ORDER BY route_id, ord').all(),
+      env.DB.prepare("SELECT * FROM routes ORDER BY published_at DESC").all(),
+      env.DB.prepare("SELECT * FROM stops ORDER BY route_id, ord").all(),
     ]);
     const stopsByRoute = new Map();
     for (const s of stops.results) {
@@ -27,25 +31,26 @@ export async function onRequestGet({ env }) {
   }
 }
 
-export async function onRequestPost({ request, env }) {
+export async function POST(request) {
+  const env = getEnv();
   let body;
   try {
     body = await request.json();
   } catch {
-    return badRequest('invalid json');
+    return badRequest("invalid json");
   }
 
-  const id = String(body.id || '').trim();
+  const id = String(body.id || "").trim();
   if (!/^[a-z0-9-]+$/.test(id)) {
-    return badRequest('id must be slug (a-z, 0-9, dash)');
+    return badRequest("id must be slug (a-z, 0-9, dash)");
   }
-  const name = String(body.name || '').trim();
-  if (!name) return badRequest('name required');
+  const name = String(body.name || "").trim();
+  if (!name) return badRequest("name required");
 
   const distanceKm = Number(body.distanceKm);
-  if (!Number.isFinite(distanceKm)) return badRequest('distanceKm required');
+  if (!Number.isFinite(distanceKm)) return badRequest("distanceKm required");
   const durationMin = Number(body.durationMin);
-  if (!Number.isInteger(durationMin)) return badRequest('durationMin required');
+  if (!Number.isInteger(durationMin)) return badRequest("durationMin required");
 
   const tags = Array.isArray(body.tags) ? body.tags : [];
   const stops = Array.isArray(body.stops) ? body.stops : [];
@@ -53,14 +58,13 @@ export async function onRequestPost({ request, env }) {
   const intensity = body.intensity || deriveIntensity(distanceKm);
   const isPublished = body.isPublished === false ? 0 : 1;
 
-  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
   const publishedAt = body.publishedAt || now.slice(0, 10);
 
   const walkingPath =
     body.walkingPath != null ? JSON.stringify(body.walkingPath) : null;
 
   try {
-    // Wrap in a transaction via D1 batch — all-or-nothing replace of route + stops.
     const stmts = [
       env.DB.prepare(
         `INSERT INTO routes (id, name, name_en, hook, hook_en, theme, atmosphere, intensity, distance_km, duration_min, district, tags, cover_color, walking_path, published_at, is_published, updated_at)
@@ -88,24 +92,24 @@ export async function onRequestPost({ request, env }) {
         body.name_en || null,
         body.hook || null,
         body.hook_en || null,
-        body.theme || '',
-        body.atmosphere || '',
+        body.theme || "",
+        body.atmosphere || "",
         intensity,
         distanceKm,
         durationMin,
-        body.district || '',
+        body.district || "",
         JSON.stringify(tags),
         body.coverColor || null,
         walkingPath,
         publishedAt,
         isPublished,
       ),
-      env.DB.prepare('DELETE FROM stops WHERE route_id = ?').bind(id),
+      env.DB.prepare("DELETE FROM stops WHERE route_id = ?").bind(id),
     ];
     stops.forEach((s, i) => {
       const lat = Number(s.coords?.[0] ?? s.lat);
       const lng = Number(s.coords?.[1] ?? s.lng);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return; // skip invalid
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
       stmts.push(
         env.DB.prepare(
           `INSERT INTO stops (route_id, ord, name, name_en, story, story_en, lat, lng, photos)
@@ -113,7 +117,7 @@ export async function onRequestPost({ request, env }) {
         ).bind(
           id,
           i,
-          String(s.name || ''),
+          String(s.name || ""),
           s.name_en || null,
           s.story || null,
           s.story_en || null,

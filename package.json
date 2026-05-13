@@ -4,19 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "precompute": "node scripts/precompute-walking.mjs",
-    "prebuild": "node scripts/precompute-walking.mjs",
     "build": "next build",
+    "build:cf": "next build && npx @cloudflare/next-on-pages",
     "start": "next start",
     "lint": "next lint",
     "db:migrate:local": "wrangler d1 migrations apply nongtangli --local",
     "db:migrate:remote": "wrangler d1 migrations apply nongtangli --remote",
     "db:seed:local": "node scripts/seed-d1.mjs --local",
     "db:seed:remote": "node scripts/seed-d1.mjs --remote",
-    "pages:dev": "npm run build && wrangler pages dev out --compatibility-date=2024-09-23"
+    "pages:dev": "npm run build:cf && wrangler pages dev .vercel/output/static --compatibility-date=2024-09-23 --compatibility-flag=nodejs_compat"
   },
   "dependencies": {
-    "next": "14.2.5",
+    "next": "14.2.30",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "leaflet": "1.9.4",
@@ -27,6 +26,8 @@
     "postcss": "8.4.39",
     "tailwindcss": "3.4.4",
     "@types/leaflet": "1.9.12",
-    "wrangler": "^3.78.0"
+    "wrangler": "^3.78.0",
+    "@cloudflare/next-on-pages": "^1.13.5",
+    "vercel": "^37.0.0"
   }
 }

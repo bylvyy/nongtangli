@@ -1,10 +1,12 @@
-// Cloudflare Pages Function: 高德步行规划代理
-// 浏览器调 /api/walking?origin=lng,lat&destination=lng,lat
-// 我们在服务端拼上 key 转发给高德,绕开浏览器侧的 CORS 和域名校验
-//
-// key 通过 Cloudflare Pages 环境变量 AMAP_SERVER_KEY 注入(不带 NEXT_PUBLIC_ 前缀,只在服务端可见)
+// /api/walking?origin=lng,lat&destination=lng,lat — server-side AMap proxy.
+// Server-side key (AMAP_SERVER_KEY) avoids browser-side CORS / referrer checks.
 
-export async function onRequestGet({ request, env }) {
+import { getEnv, json } from "@/lib/server/db";
+
+export const runtime = "edge";
+
+export async function GET(request) {
+  const env = getEnv();
   const url = new URL(request.url);
   const origin = url.searchParams.get("origin");
   const destination = url.searchParams.get("destination");
@@ -35,14 +37,7 @@ export async function onRequestGet({ request, env }) {
         "Cache-Control": "public, max-age=86400",
       },
     });
-  } catch (e) {
+  } catch {
     return json({ error: "upstream fetch failed" }, 502);
   }
-}
-
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-  });
 }

@@ -6,4 +6,5 @@ out
 .env*.local
 .dev.vars
 .wrangler/
+.vercel/
 scripts/.seed.generated.sql

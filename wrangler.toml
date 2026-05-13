@@ -1,20 +1,20 @@
 # Cloudflare Pages config for Nongtangli.
-# `pages_build_output_dir` lets us run `wrangler pages dev` with the static
-# export from `npm run build`. D1 binding `DB` is read by Pages Functions
-# under /functions/api/**.
+# We now run on @cloudflare/next-on-pages, so the build output lives in
+# `.vercel/output/static`. D1 binding `DB` is consumed by app/api/** route
+# handlers (edge runtime) and server pages via getRequestContext().env.
 #
 # Before first deploy:
 #   wrangler d1 create nongtangli         (writes a database_id; paste below)
 #   wrangler d1 migrations apply nongtangli --remote
-#   wrangler d1 execute nongtangli --remote --file=./migrations/0001_init.sql  (if migrations cmd not used)
 #
 # Local dev:
 #   wrangler d1 migrations apply nongtangli --local
-#   npm run build && wrangler pages dev out --d1=DB --compatibility-date=2024-09-23
+#   npm run pages:dev   (runs `next build && next-on-pages` then wrangler pages dev)
 
 name = "nongtangli"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "out"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
 
 [[d1_databases]]
 binding = "DB"

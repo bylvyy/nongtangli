@@ -1,6 +1,10 @@
 import FootprintClient from "./FootprintClient";
-import { ROUTES } from "../../lib/routes";
+import { fetchAllRoutes } from "../../lib/server/routes-data";
 
-export default function FootprintPage() {
-  return <FootprintClient routes={ROUTES} />;
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
+export default async function FootprintPage() {
+  const routes = await fetchAllRoutes();
+  return <FootprintClient routes={routes} />;
 }

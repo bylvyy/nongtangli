@@ -1,11 +1,11 @@
-// POST /api/feedback — submit free-form feedback.
-// Body: { message, category?, contact?, page?, clientId? }
+import { badRequest, getEnv, json, serverError } from "@/lib/server/db";
 
-import { badRequest, json, serverError } from "../_lib/db.js";
+export const runtime = "edge";
 
 const ALLOWED_CATEGORIES = new Set(["bug", "suggestion", "general"]);
 
-export async function onRequestPost({ request, env }) {
+export async function POST(request) {
+  const env = getEnv();
   let body;
   try {
     body = await request.json();

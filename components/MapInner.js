@@ -69,7 +69,7 @@ function buildUserIcon(heading) {
 
 export default function MapInner({
   stops,
-  routeId,
+  walkingPath,
   height,
   focusIndex,
   geo,
@@ -103,11 +103,11 @@ export default function MapInner({
     return stopsGcj[0].coords;
   }, [stopsGcj]);
 
-  // 优先用同步可得的轨迹(预计算 / localStorage)— 进入即渲染,无网络等待。
-  // 没拿到才走异步获取(动态加路线、且尚未重新 build 时的兜底)。
+  // 优先用 D1 预存或 localStorage 命中的轨迹 — 进入即渲染,无网络等待。
+  // 没拿到才走运行时 fetch (作为兜底)。
   const initialPath = useMemo(
-    () => getWalkingPathSync(routeId, stops),
-    [routeId, stops],
+    () => getWalkingPathSync(stops, walkingPath),
+    [stops, walkingPath],
   );
   const [walkPath, setWalkPath] = useState(initialPath);
 
@@ -115,14 +115,14 @@ export default function MapInner({
     setWalkPath(initialPath);
     if (initialPath) return; // 已有轨迹,无需再请求
     let cancelled = false;
-    getWalkingPath(stops, routeId).then((path) => {
+    getWalkingPath(stops, walkingPath).then((path) => {
       if (cancelled || !path) return;
       setWalkPath(path);
     });
     return () => {
       cancelled = true;
     };
-  }, [stops, routeId, initialPath]);
+  }, [stops, walkingPath, initialPath]);
 
   const straightLine = stopsGcj?.map((s) => s.coords);
   const userIcon = useMemo(

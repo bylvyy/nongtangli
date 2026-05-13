@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
-import { ROUTES, getRouteById } from "../../../lib/routes";
+import { fetchRouteById } from "../../../lib/server/routes-data";
 import RouteDetailClient from "./RouteDetailClient";
 
-export function generateStaticParams() {
-  return ROUTES.map((r) => ({ id: r.id }));
-}
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
-export default function RouteDetailPage({ params }) {
-  const route = getRouteById(params.id);
+export default async function RouteDetailPage({ params }) {
+  const route = await fetchRouteById(params.id);
   if (!route) return notFound();
   return <RouteDetailClient route={route} />;
 }

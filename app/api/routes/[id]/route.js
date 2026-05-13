@@ -1,8 +1,9 @@
-// GET /api/routes/:id — single route detail.
+import { getEnv, json, rowsToRoute, serverError } from "@/lib/server/db";
 
-import { json, rowsToRoute, serverError } from "../../_lib/db.js";
+export const runtime = "edge";
 
-export async function onRequestGet({ env, params }) {
+export async function GET(_request, { params }) {
+  const env = getEnv();
   const id = params.id;
   if (!id) return json({ error: "missing id" }, 400);
   try {
@@ -19,11 +20,9 @@ export async function onRequestGet({ env, params }) {
       .bind(id)
       .all();
 
-    return json(
-      { route: rowsToRoute(route, stops.results) },
-      200,
-      { "Cache-Control": "public, max-age=60, s-maxage=300" },
-    );
+    return json({ route: rowsToRoute(route, stops.results) }, 200, {
+      "Cache-Control": "public, max-age=60, s-maxage=300",
+    });
   } catch (e) {
     return serverError(e.message);
   }

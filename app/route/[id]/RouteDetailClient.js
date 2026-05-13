@@ -161,7 +161,7 @@ export default function RouteDetailClient({ route }) {
       <div className="sticky top-0 -mt-14 h-[55vh] z-0 bg-ink-100">
         <MapView
           stops={route.stops}
-          routeId={route.id}
+          walkingPath={route.walkingPath}
           focusIndex={focus}
           geo={geo}
           heading={heading}

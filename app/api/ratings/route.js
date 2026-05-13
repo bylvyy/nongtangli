@@ -1,10 +1,9 @@
-// POST /api/ratings — submit a 1-5 star rating for a route.
-// Body: { routeId, stars, comment?, clientId? }
-// Returns { ok: true, id } on success.
+import { badRequest, getEnv, json, serverError } from "@/lib/server/db";
 
-import { badRequest, json, serverError } from "../_lib/db.js";
+export const runtime = "edge";
 
-export async function onRequestPost({ request, env }) {
+export async function POST(request) {
+  const env = getEnv();
   let body;
   try {
     body = await request.json();
