@@ -1,0 +1,29 @@
+# Cloudflare Pages config for Nongtangli.
+# `pages_build_output_dir` lets us run `wrangler pages dev` with the static
+# export from `npm run build`. D1 binding `DB` is read by Pages Functions
+# under /functions/api/**.
+#
+# Before first deploy:
+#   wrangler d1 create nongtangli         (writes a database_id; paste below)
+#   wrangler d1 migrations apply nongtangli --remote
+#   wrangler d1 execute nongtangli --remote --file=./migrations/0001_init.sql  (if migrations cmd not used)
+#
+# Local dev:
+#   wrangler d1 migrations apply nongtangli --local
+#   npm run build && wrangler pages dev out --d1=DB --compatibility-date=2024-09-23
+
+name = "nongtangli"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "out"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nongtangli"
+# Fill in after `wrangler d1 create nongtangli`. Local dev uses the local
+# SQLite stub regardless of this id.
+database_id = "309e65ea-d0fa-4bb9-97aa-e5caeff9bdf0"
+
+[vars]
+# Non-secret. Admin password and AMAP_SERVER_KEY go through `wrangler secret`
+# (or Pages dashboard → Settings → Environment variables → Encrypt).
+PUBLIC_SITE_NAME = "Nongtangli"
