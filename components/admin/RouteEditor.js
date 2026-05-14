@@ -77,6 +77,8 @@ export default function RouteEditor({ initial, mode }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successAt, setSuccessAt] = useState(null);
+  const [pathBusy, setPathBusy] = useState(false);
+  const [pathMsg, setPathMsg] = useState(null);
 
   const intensityAuto = useMemo(
     () => deriveIntensity(Number(route.distanceKm) || 0),
@@ -115,6 +117,53 @@ export default function RouteEditor({ initial, mode }) {
       [stops[i], stops[j]] = [stops[j], stops[i]];
       return { ...r, stops };
     });
+  }
+
+  async function buildPath() {
+    if (isNew) {
+      setPathMsg({ type: "error", text: "请先保存路线再生成路径" });
+      return;
+    }
+    setPathBusy(true);
+    setPathMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/routes/${encodeURIComponent(route.id)}/build-path`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `http ${res.status}`);
+      setPathMsg({
+        type: "ok",
+        text: `已生成 ${data.segments} 段, 共 ${data.points} 个点`,
+      });
+      setRoute((r) => ({ ...r, walkingPath: { points: data.points } }));
+    } catch (e) {
+      setPathMsg({ type: "error", text: e.message });
+    } finally {
+      setPathBusy(false);
+    }
+  }
+
+  async function clearPath() {
+    setPathBusy(true);
+    setPathMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/routes/${encodeURIComponent(route.id)}/build-path`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `http ${res.status}`);
+      }
+      setRoute((r) => ({ ...r, walkingPath: null }));
+      setPathMsg({ type: "ok", text: "已清除" });
+    } catch (e) {
+      setPathMsg({ type: "error", text: e.message });
+    } finally {
+      setPathBusy(false);
+    }
   }
 
   async function save() {
@@ -348,6 +397,55 @@ export default function RouteEditor({ initial, mode }) {
             onChange={(e) => setTagsRaw(e.target.value)}
           />
         </Field>
+      </section>
+
+      <section className="rounded-2xl bg-white border border-ink-100 p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-base font-semibold">步行路径</h2>
+            <p className="text-xs text-ink-500 mt-0.5">
+              {route.walkingPath
+                ? Array.isArray(route.walkingPath)
+                  ? `已生成 (${route.walkingPath.length} 个点)`
+                  : `已生成 (${route.walkingPath.points || "?"} 个点)`
+                : "未生成 — 详情页地图会画直线"}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {route.walkingPath && (
+              <button
+                type="button"
+                onClick={clearPath}
+                disabled={pathBusy}
+                className="px-3 py-1.5 rounded-full text-ink-500 text-xs hover:bg-ink-100 disabled:opacity-50"
+              >
+                清除
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={buildPath}
+              disabled={pathBusy || isNew || route.stops.length < 2}
+              className="px-3 py-1.5 rounded-full bg-ink-100 text-ink-700 text-xs hover:bg-ink-200 disabled:opacity-50"
+            >
+              {pathBusy ? "生成中…" : route.walkingPath ? "重新生成" : "生成路径"}
+            </button>
+          </div>
+        </div>
+        {pathMsg && (
+          <div
+            className={`rounded-lg px-3 py-2 text-xs ${
+              pathMsg.type === "ok"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
+            {pathMsg.text}
+          </div>
+        )}
+        <p className="text-[11px] text-ink-400">
+          stops 改了之后记得先保存,再点"生成路径"。
+        </p>
       </section>
 
       <section className="rounded-2xl bg-white border border-ink-100 p-5 space-y-4">
