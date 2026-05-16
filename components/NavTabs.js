@@ -22,7 +22,10 @@ export default function NavTabs() {
     },
   ];
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-[800] bg-ink-50/95 backdrop-blur border-t border-ink-100 pb-safe">
+    <nav
+      className="fixed bottom-0 inset-x-0 z-[800] bg-ink-50 border-t border-ink-100 pb-safe"
+      style={{ position: "fixed" }}
+    >
       <div className="max-w-2xl mx-auto grid grid-cols-2">
         {tabs.map((tab) => {
           const active = tab.match(pathname);

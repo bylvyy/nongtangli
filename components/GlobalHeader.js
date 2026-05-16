@@ -16,7 +16,10 @@ export default function GlobalHeader() {
   const isFootprint = pathname.startsWith("/footprint");
 
   return (
-    <header className="sticky top-0 z-[800] backdrop-blur bg-ink-50/90 border-b border-ink-100">
+    <header
+      className="fixed top-0 inset-x-0 z-[800] bg-ink-50 border-b border-ink-100"
+      style={{ position: "fixed" }}
+    >
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         {isFootprint ? (
           <>

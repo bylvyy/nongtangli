@@ -19,7 +19,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen pb-28">
+      <body className="min-h-screen pt-14 pb-28">
         <HtmlLangSync />
         <GlobalHeader />
         <main className="max-w-2xl mx-auto px-4 py-4">{children}</main>

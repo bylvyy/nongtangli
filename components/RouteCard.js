@@ -24,13 +24,22 @@ export default function RouteCard({ route, isWalked, isWished, distanceFromMe })
       <RouteCover route={route} className="h-44">
         <div className="absolute inset-0 p-3 flex flex-col justify-between text-ink-50">
           <div className="flex gap-1.5 flex-wrap">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded text-white"
+              style={{ background: "rgba(0,0,0,0.55)" }}
+            >
               {localizeTheme(route.theme, lang)}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded text-white"
+              style={{ background: "rgba(0,0,0,0.55)" }}
+            >
               {localizeIntensity(intensity, lang)}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 backdrop-blur">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded text-white"
+              style={{ background: "rgba(0,0,0,0.55)" }}
+            >
               {localizeAtmosphere(route.atmosphere, lang)}
             </span>
           </div>
