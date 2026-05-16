@@ -12,7 +12,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply nongtangli --remote",
     "db:seed:local": "node scripts/seed-d1.mjs --local",
     "db:seed:remote": "node scripts/seed-d1.mjs --remote",
-    "pages:dev": "npm run build && wrangler pages dev .vercel/output/static --compatibility-date=2024-09-23 --compatibility-flag=nodejs_compat"
+    "pages:dev": "npm run build:cf && wrangler pages dev .vercel/output/static --port 3000 --compatibility-date=2024-09-23 --compatibility-flag=nodejs_compat"
   },
   "dependencies": {
     "next": "14.2.30",
