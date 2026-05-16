@@ -6,6 +6,7 @@ import { useT } from "../lib/i18n";
 import { haversineKm, localizeField } from "../lib/routes";
 import { pointWgsToGcj } from "../lib/coords";
 import { toggleWalked, getFootprint } from "../lib/footprint";
+import { distanceAlongPath } from "../lib/pathDistance";
 
 // 行走模式 — 全屏覆盖整个 PWA, 用户开始走以后看到的"操作面板"。
 //
@@ -23,7 +24,11 @@ import { toggleWalked, getFootprint } from "../lib/footprint";
 // - 横滑卡片切 stop
 // - 走到最后一站并到达 → 弹"记录路线?"对话框 (走过/暂不)
 //
-// C3 还会加: wakeLock, "用高德继续"逃生
+// C3-1 加入:
+// - "距我"和 ETA 改用沿步行轨迹的距离 (route.walkingPath), 而非直线
+// - wakeLock 保持屏幕常亮, 切后台再回来自动重新申请
+//
+// C3-2 待加: "用高德继续"逃生
 const ARRIVED_M = 50;
 const NEAR_M = 200;
 
@@ -39,27 +44,43 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   const stopName = localizeField(current, "name", lang);
   const stopStory = localizeField(current, "story", lang);
 
-  // 用户到当前 stop 的直线距离 (米) — 不是步行距离, 但够用作"快到了"的提示
+  // 用户到当前 stop 的距离 (米)。
   //
-  // 关键: stops.coords 是 WGS-84, 而浏览器 Geolocation 在中国返回的是 GCJ-02
-  // (iOS/Android/国内 Chrome 都是). 直接 haversine 会有 ~400m 系统性偏差,
-  // 在真机上"自动到达"永远不会触发. 把 stop 转到 GCJ 再算.
+  // 优先用步行轨迹算 (route.walkingPath, GCJ-02): 把用户和 stop 都投影到轨迹,
+  // 沿轨迹累加 — 这是真实可走的距离, 巷子/河道/铁路隔断时比直线大 1.5-2x。
+  // 没有轨迹 (老路线还没生成) 才回退到直线 haversine。
+  //
+  // 关键: stops.coords 是 WGS-84, 浏览器 Geolocation 在中国返回 GCJ-02。
+  // 直接 haversine 会有 ~400m 系统偏差, 50m 自动到达永远触发不了。
+  // 这里把 stop 全部转成 GCJ 再算, 跟 walkingPath 同一坐标系。
   const userPos = geo?.position?.coords;
   const currentGcj = useMemo(
     () => pointWgsToGcj(current.coords),
     [current.coords],
   );
-  const distM = useMemo(() => {
+  // 到达判定用直线距离, 50m 以内地理上一定算到了 — 不依赖轨迹覆盖
+  const distLineM = useMemo(() => {
     if (!userPos) return null;
     return haversineKm(userPos, currentGcj) * 1000;
   }, [userPos, currentGcj]);
+  // 显示用步行距离: 沿轨迹算更接近实际"还要走多远"
+  const distWalkM = useMemo(() => {
+    if (!userPos || !route.walkingPath || route.walkingPath.length < 2) {
+      return null;
+    }
+    return distanceAlongPath(route.walkingPath, userPos, currentGcj);
+  }, [userPos, currentGcj, route.walkingPath]);
+  // UI 展示的距离: 优先步行距离, 没有轨迹/算不出时回退直线
+  const distM = distWalkM != null ? distWalkM : distLineM;
 
-  // 简单步行 ETA: 80 米/分钟 (城市步行均值, 含等红灯)
+  // 步行 ETA: 80 米/分钟 (城市步行均值, 含等红灯)
   const etaMin =
     distM != null ? Math.max(1, Math.round(distM / 80)) : null;
 
-  const arrived = distM != null && distM < ARRIVED_M;
-  const arriving = distM != null && distM >= ARRIVED_M && distM < NEAR_M;
+  // 到达判定一律用直线 — 步行距离会比直线大, 用步行判定会让真实"已到"被误判为"还差几十米"
+  const arrived = distLineM != null && distLineM < ARRIVED_M;
+  const arriving =
+    distLineM != null && distLineM >= ARRIVED_M && distLineM < NEAR_M;
 
   // 已经到过的 stops — 一旦到达就记下, 即使后续 GPS 飘走也不再回退提示
   const [arrivedSet, setArrivedSet] = useState(() => new Set());
@@ -97,6 +118,48 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  // 屏幕常亮 — 进入行走模式后保持屏幕不息屏, 用户走多久看多久。
+  // iOS 16.4+ / Android Chrome / 桌面 Chrome 都支持; 老 iOS Safari 不支持就静默跳过。
+  // 切到后台 (visibilitychange hidden) 时锁会被系统自动 release, 切回前台需要重新 request。
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+    let sentinel = null;
+    let cancelled = false;
+
+    async function acquire() {
+      try {
+        const lock = await navigator.wakeLock.request("screen");
+        if (cancelled) {
+          lock.release().catch(() => {});
+          return;
+        }
+        sentinel = lock;
+        // 系统主动释放 (切后台/低电量) 时记录, 回前台再 acquire
+        sentinel.addEventListener("release", () => {
+          sentinel = null;
+        });
+      } catch {
+        // 用户拒绝 / 浏览器策略阻止 — 静默, 不影响主流程
+      }
+    }
+
+    function onVisible() {
+      if (document.visibilityState === "visible" && !sentinel) acquire();
+    }
+
+    acquire();
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      if (sentinel) {
+        sentinel.release().catch(() => {});
+        sentinel = null;
+      }
     };
   }, []);
 
