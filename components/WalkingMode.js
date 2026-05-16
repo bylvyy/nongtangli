@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MapView from "./MapView";
 import { useT } from "../lib/i18n";
 import { haversineKm, localizeField } from "../lib/routes";
+import { pointWgsToGcj } from "../lib/coords";
 import { toggleWalked, getFootprint } from "../lib/footprint";
 
 // 行走模式 — 全屏覆盖整个 PWA, 用户开始走以后看到的"操作面板"。
@@ -39,11 +40,19 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   const stopStory = localizeField(current, "story", lang);
 
   // 用户到当前 stop 的直线距离 (米) — 不是步行距离, 但够用作"快到了"的提示
+  //
+  // 关键: stops.coords 是 WGS-84, 而浏览器 Geolocation 在中国返回的是 GCJ-02
+  // (iOS/Android/国内 Chrome 都是). 直接 haversine 会有 ~400m 系统性偏差,
+  // 在真机上"自动到达"永远不会触发. 把 stop 转到 GCJ 再算.
   const userPos = geo?.position?.coords;
+  const currentGcj = useMemo(
+    () => pointWgsToGcj(current.coords),
+    [current.coords],
+  );
   const distM = useMemo(() => {
     if (!userPos) return null;
-    return haversineKm(userPos, current.coords) * 1000;
-  }, [userPos, current.coords]);
+    return haversineKm(userPos, currentGcj) * 1000;
+  }, [userPos, currentGcj]);
 
   // 简单步行 ETA: 80 米/分钟 (城市步行均值, 含等红灯)
   const etaMin =
