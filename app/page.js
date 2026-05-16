@@ -3,7 +3,9 @@ import { THEMES, ATMOSPHERES } from "../lib/routes";
 import { fetchAllRoutes } from "../lib/server/routes-data";
 
 export const runtime = "edge";
-export const dynamic = "force-dynamic";
+// 路线列表平均一周更新 1-2 条, 5 分钟边缘缓存足够新鲜,
+// 同时 tab 切换 / Link prefetch 可命中静态产物 — 体感几乎瞬开。
+export const revalidate = 300;
 
 export default async function HomePage() {
   const routes = await fetchAllRoutes();
