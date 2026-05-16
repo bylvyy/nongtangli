@@ -92,7 +92,7 @@ export default function RouteDetailClient({ route }) {
   }, []);
 
   return (
-    <div className="-mt-4 -mx-4">
+    <div className="-mt-[4.5rem] -mx-4">
       {/* 详情页专属顶栏 — 透明覆盖在地图上 */}
       <div className="sticky top-0 z-[800] h-14 px-3 flex items-center gap-2 bg-ink-50/0 backdrop-blur-0 transition-colors">
         <div className={`absolute inset-0 -z-10 transition-all ${
