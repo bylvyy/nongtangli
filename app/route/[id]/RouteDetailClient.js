@@ -6,6 +6,8 @@ import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
 import NavigateToStart from "../../../components/NavigateToStart";
+import StartWalkingButton from "../../../components/StartWalkingButton";
+import WalkingMode from "../../../components/WalkingMode";
 import LangToggle from "../../../components/LangToggle";
 import RatingWidget from "../../../components/RatingWidget";
 import { useGeolocation } from "../../../lib/useGeolocation";
@@ -24,6 +26,7 @@ export default function RouteDetailClient({ route }) {
   const { t, lang } = useT();
   const [focus, setFocus] = useState(null);
   const [follow, setFollow] = useState(false);
+  const [walking, setWalking] = useState(false);
   const geo = useGeolocation();
   const heading = useDeviceHeading();
   const router = useRouter();
@@ -93,6 +96,15 @@ export default function RouteDetailClient({ route }) {
   }, []);
 
   return (
+    <>
+    {walking && (
+      <WalkingMode
+        route={route}
+        geo={geo}
+        heading={heading}
+        onExit={() => setWalking(false)}
+      />
+    )}
     <div className="-mt-[4.5rem] -mx-4">
       {/* 详情页专属顶栏 — 透明覆盖在地图上 */}
       <div className="sticky top-0 z-[800] h-14 px-3 flex items-center gap-2 bg-ink-50/0 backdrop-blur-0 transition-colors">
@@ -211,6 +223,7 @@ export default function RouteDetailClient({ route }) {
             </div>
           </header>
 
+          <StartWalkingButton onStart={() => setWalking(true)} />
           <NavigateToStart route={route} />
           <RouteActions routeId={route.id} />
 
@@ -244,5 +257,6 @@ export default function RouteDetailClient({ route }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
