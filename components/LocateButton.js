@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 // 地图 app 风格的定位按钮
 // 状态:
@@ -11,40 +11,39 @@ import { useState, useEffect } from "react";
 //   denied                                → 红色 !, 点击展示提示
 //   unsupported / error                   → 灰色 !,点击展示提示
 //
-// 朝向(heading)授权:首次定位成功后静默尝试一次,iOS 没用户手势会失败,
-// 在拒绝/失败时再次点击按钮会触发(那时已有用户手势)
+// 朝向(heading)授权必须同步挂在用户手势里 — iOS 13+ 的 requestPermission
+// 一旦延后到 useEffect 就会被判定为"非用户激活"而抛错。所以每次点击都顺手
+// 调一遍 enable(), 直到拿到 active 为止。
 
 export default function LocateButton({ geo, heading, follow, setFollow }) {
   const [tip, setTip] = useState(null);
-  const [silentHeadingTried, setSilentHeadingTried] = useState(false);
-
-  useEffect(() => {
-    if (
-      geo.state === "watching" &&
-      !silentHeadingTried &&
-      heading.state === "idle"
-    ) {
-      setSilentHeadingTried(true);
-      heading.enable().catch(() => {});
-    }
-  }, [geo.state, heading, silentHeadingTried]);
 
   function showTip(msg) {
     setTip(msg);
     setTimeout(() => setTip(null), 3500);
   }
 
+  function tryEnableHeading() {
+    if (heading.state === "active" || heading.state === "unsupported") return;
+    // 直接调,不 await,不 catch — 必须在用户手势同帧执行
+    try {
+      const p = heading.enable();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {
+      /* swallow */
+    }
+  }
+
   function onClick() {
+    // 不论何种状态,先尝试拿朝向授权 (借用本次点击的手势上下文)
+    tryEnableHeading();
+
     if (geo.state === "idle") {
       geo.start();
       return;
     }
     if (geo.state === "requesting") return;
     if (geo.state === "watching") {
-      // 如果朝向之前没拿到,这次借助用户手势再试一次
-      if (heading.state !== "active") {
-        heading.enable().catch(() => {});
-      }
       setFollow((v) => !v);
       return;
     }
@@ -57,8 +56,7 @@ export default function LocateButton({ geo, heading, follow, setFollow }) {
       return;
     }
     if (geo.state === "error") {
-      showTip(`定位出错,可重试。${geo.error || ""}`);
-      // 重置:再触发一次 start
+      showTip(`定位出错,正在重试`);
       geo.start();
       return;
     }
