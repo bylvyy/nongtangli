@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import MapView from "../../../components/MapView";
 import PointStop from "../../../components/PointStop";
 import RouteActions from "../../../components/RouteActions";
+import NavigateToStart from "../../../components/NavigateToStart";
 import LangToggle from "../../../components/LangToggle";
 import RatingWidget from "../../../components/RatingWidget";
 import { useGeolocation } from "../../../lib/useGeolocation";
@@ -210,6 +211,7 @@ export default function RouteDetailClient({ route }) {
             </div>
           </header>
 
+          <NavigateToStart route={route} />
           <RouteActions routeId={route.id} />
 
           <p className="text-[11px] text-ink-400 leading-relaxed">
