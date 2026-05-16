@@ -240,8 +240,8 @@
   },
   {
     "id": "yangpu-riverside",
-    "name": "杨浦滨江:从毛麻仓库到工部局电厂",
-    "name_en": "Yangpu Riverside: From the Hemp Warehouse to the Municipal Power Plant",
+    "name": "杨浦滨江:从秦皇岛路码头到杨树浦电厂",
+    "name_en": "Yangpu Riverside: From Qinhuangdao Pier to Yangshupu Power Plant",
     "hook": "中国最早的电从这里发出来",
     "hook_en": "The first electricity in China was generated here",
     "theme": "工业遗产",
@@ -257,6 +257,50 @@
     ],
     "coverColor": "#4a4738",
     "stops": [
+      {
+        "name": "秦皇岛路码头",
+        "name_en": "Qinhuangdao Road Ferry Pier",
+        "coords": [
+          31.257,
+          121.5108
+        ],
+        "story": "起点。从 4 号线杨树浦路站步行 10 分钟即到。1947–1949 年苏北逃难民众进沪的主要码头,如今是轮渡站,可以买票坐船到东昌路。",
+        "story_en": "Starting point. A 10-minute walk from Yangshupu Road station on Line 4. From 1947 to 1949 this was the main pier for refugees fleeing northern Jiangsu into Shanghai. Today it's a ferry terminal — buy a ticket and cross to Dongchang Road.",
+        "photos": []
+      },
+      {
+        "name": "上海制皂厂沿江段",
+        "name_en": "Shanghai Soap Factory Riverfront",
+        "coords": [
+          31.2614,
+          121.5234
+        ],
+        "story": "厂房改造的肥皂博物馆免费,但更值得看的是江边那段不锈钢扶手——是用厂里旧锅炉的零件焊的。",
+        "story_en": "The factory-turned-Soap Museum is free, but the real find is the stainless-steel railing along the river — welded together from parts salvaged from the factory's old boilers.",
+        "photos": []
+      },
+      {
+        "name": "国棉十七厂老门楼",
+        "name_en": "Cotton Mill No. 17 Gatehouse",
+        "coords": [
+          31.2647,
+          121.531
+        ],
+        "story": "1921 年由日资裕丰纺织建立。门楼 '国营上海第十七棉纺织厂' 字迹模糊但还在,门楼后面如今是绿地。",
+        "story_en": "Founded in 1921 by Japanese-owned Yufeng Textiles. The faded characters '国营上海第十七棉纺织厂' (Shanghai State-Run Cotton Mill No. 17) are still legible. Behind the gate is now parkland.",
+        "photos": []
+      },
+      {
+        "name": "毛麻仓库",
+        "name_en": "Maoma (Wool & Hemp) Warehouse",
+        "coords": [
+          31.2674,
+          121.5358
+        ],
+        "story": "1920 年,日商在杨树浦建的仓储厂房,大跨度无柱空间。如今做展览,但工字钢梁和铸铁柱头都没动。",
+        "story_en": "Built in 1920 by a Japanese trading firm — a long-span warehouse without internal columns. Now used for exhibitions, but the I-beams and cast-iron capitals have not been touched.",
+        "photos": []
+      },
       {
         "name": "杨树浦水厂栈桥",
         "name_en": "Yangshupu Waterworks Boardwalk",
@@ -275,52 +319,8 @@
           31.2702,
           121.5462
         ],
-        "story": "1913 年投产,远东最大火电厂。105 米烟囱保留,旁边的灰仓改成了咖啡馆,但底层钢架还是原物。",
-        "story_en": "Commissioned in 1913, once the largest thermal power station in the Far East. The 105-metre chimney is preserved; the ash silo next door is now a café, though its lower steel framework is original.",
-        "photos": []
-      },
-      {
-        "name": "毛麻仓库",
-        "name_en": "Maoma (Wool & Hemp) Warehouse",
-        "coords": [
-          31.2674,
-          121.5358
-        ],
-        "story": "1920 年,日商在杨树浦建的仓储厂房,大跨度无柱空间。如今做展览,但工字钢梁和铸铁柱头都没动。",
-        "story_en": "Built in 1920 by a Japanese trading firm — a long-span warehouse without internal columns. Now used for exhibitions, but the I-beams and cast-iron capitals have not been touched.",
-        "photos": []
-      },
-      {
-        "name": "国棉十七厂老门楼",
-        "name_en": "Cotton Mill No. 17 Gatehouse",
-        "coords": [
-          31.2647,
-          121.531
-        ],
-        "story": "1921 年由日资裕丰纺织建立。门楼 '国营上海第十七棉纺织厂' 字迹模糊但还在,门楼后面如今是绿地。",
-        "story_en": "Founded in 1921 by Japanese-owned Yufeng Textiles. The faded characters '国营上海第十七棉纺织厂' (Shanghai State-Run Cotton Mill No. 17) are still legible. Behind the gate is now parkland.",
-        "photos": []
-      },
-      {
-        "name": "上海制皂厂沿江段",
-        "name_en": "Shanghai Soap Factory Riverfront",
-        "coords": [
-          31.2614,
-          121.5234
-        ],
-        "story": "厂房改造的肥皂博物馆免费,但更值得看的是江边那段不锈钢扶手——是用厂里旧锅炉的零件焊的。",
-        "story_en": "The factory-turned-Soap Museum is free, but the real find is the stainless-steel railing along the river — welded together from parts salvaged from the factory's old boilers.",
-        "photos": []
-      },
-      {
-        "name": "秦皇岛路码头",
-        "name_en": "Qinhuangdao Road Ferry Pier",
-        "coords": [
-          31.257,
-          121.5108
-        ],
-        "story": "终点。这里是 1947–1949 年苏北逃难民众进沪的主要码头。如今是轮渡站,可以买票坐船到东昌路。",
-        "story_en": "End of the walk. From 1947 to 1949 this was the main pier for refugees fleeing northern Jiangsu into Shanghai. Today it's a ferry terminal — buy a ticket and cross to Dongchang Road on the other side.",
+        "story": "终点。1913 年投产,远东最大火电厂。105 米烟囱保留,旁边的灰仓改成了咖啡馆,但底层钢架还是原物。",
+        "story_en": "End of the walk. Commissioned in 1913, once the largest thermal power station in the Far East. The 105-metre chimney is preserved; the ash silo next door is now a café, though its lower steel framework is original.",
         "photos": []
       }
     ]
@@ -982,18 +982,18 @@
           31.2134,
           121.4342
         ],
-        "story": "终点。永福路 52 号是 1957 年起的上海电影演员剧团驻地,赵丹、白杨都在这里排过戏。现在改作美术馆,周末开放。",
-        "story_en": "Endpoint. 52 Yongfu Road housed the Shanghai Film Actors' Troupe from 1957 — Zhao Dan and Bai Yang both rehearsed here. Now an art museum, open weekends.",
+        "story": "终点。永福路 250 号是 1957 年起的上海电影演员剧团驻地,赵丹、白杨都在这里排过戏。现在改作美术馆,周末开放。",
+        "story_en": "Endpoint. 250 Yongfu Road housed the Shanghai Film Actors' Troupe from 1957 — Zhao Dan and Bai Yang both rehearsed here. Now an art museum, open weekends.",
         "photos": []
       }
     ]
   },
   {
     "id": "bund-22-buildings",
-    "name": "外滩万国建筑:22 栋的来历",
-    "name_en": "The Bund: stories behind 22 buildings",
-    "hook": "经典必走,但每栋楼都有讲法",
-    "hook_en": "The must-do route, with a real story per building",
+    "name": "外滩万国建筑:六栋核心",
+    "name_en": "The Bund: six landmark buildings",
+    "hook": "外滩 22 栋里挑出最有故事的六栋,慢慢讲",
+    "hook_en": "Six standouts from the Bund's twenty-two buildings, one story at a time",
     "theme": "外滩与万国建筑",
     "atmosphere": "适合朋友",
     "distanceKm": 1.8,
@@ -1145,8 +1145,8 @@
           31.2399,
           121.4901
         ],
-        "story": "汇丰银行、海关大楼、和平饭店一段。如果时间紧,这段可一带而过;若有兴趣,见'外滩万国建筑'专题。",
-        "story_en": "The HSBC, Customs House and Peace Hotel stretch. Skim it if pressed for time, or see our dedicated 'Bund 22 Buildings' route for the full story.",
+        "story": "汇丰银行(中山东一路 12 号)与海关大楼(13 号)并立,公和洋行 1923–1927 年作品。海关钟楼与伦敦大本钟同款,整点报时是外滩最准的钟。汇丰门厅马赛克穹顶 1956 年被石灰封住,1997 年重见天日。",
+        "story_en": "The HSBC building (No. 12) and the Customs House (No. 13) stand together — both Palmer & Turner, 1923 and 1927. The Customs clock is the same model as Big Ben and chimes the most reliable hour on the Bund. The HSBC lobby's mosaic dome was covered with lime in 1956 and only uncovered again in 1997.",
         "photos": []
       },
       {
@@ -1324,14 +1324,14 @@
         "photos": []
       },
       {
-        "name": "湖南路 105 号 · 周信芳旧居",
-        "name_en": "105 Hunan Road · Zhou Xinfang's residence",
+        "name": "太原路 160 号 · 马歇尔公馆",
+        "name_en": "160 Taiyuan Road · Marshall House",
         "coords": [
-          31.2044,
-          121.4373
+          31.2056,
+          121.4399
         ],
-        "story": "1955 年至 1968 年京剧大师周信芳住所,英式假四层。一楼仍保留他练功的木地板,有他练功踏出的浅槽。",
-        "story_en": "Home of Peking Opera master Zhou Xinfang from 1955 to 1968. English mock-four-storey. The ground-floor wooden practice floor still bears the shallow grooves worn in by his daily training.",
+        "story": "1925 年法国式四层洋楼,坡屋顶配老虎窗。1946 年美国特使马歇尔来沪斡旋国共时下榻于此,现为太原别墅酒店,大堂可入内看原木楼梯。",
+        "story_en": "A 1925 four-storey French-style villa with a steep roof and dormer windows. In 1946 US special envoy George Marshall stayed here while mediating between the Nationalists and Communists. Now the Taiyuan Villa hotel — the lobby is open and the original wooden staircase is intact.",
         "photos": []
       },
       {
