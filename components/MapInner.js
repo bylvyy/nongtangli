@@ -47,12 +47,11 @@ function FitBounds({ stops, focusIndex, follow, userPos }) {
 }
 
 function buildUserIcon(heading) {
-  // SVG 蓝点 + 可选的朝向扇形
+  // SVG transform="rotate(deg cx cy)" 用 attribute 写法, Safari 不认 CSS
+  // transform-origin 影响 SVG 元素, 所以这里只走 attribute 形式。
   const cone =
     typeof heading === "number"
-      ? `<g transform="rotate(${heading} 24 24)" style="transform-origin:24px 24px">
-           <path d="M24 24 L14 6 Q24 1 34 6 Z" fill="#3b82f6" opacity="0.35" />
-         </g>`
+      ? `<path d="M24 24 L14 6 Q24 1 34 6 Z" fill="#3b82f6" opacity="0.35" transform="rotate(${heading.toFixed(1)} 24 24)" />`
       : "";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
       ${cone}
@@ -89,13 +88,15 @@ export default function MapInner({
     [stops, lang],
   );
 
-  // 浏览器 Geolocation 也是 WGS84
+  // 浏览器 Geolocation 在中国大陆返回的实际上已经是 GCJ-02:
+  // - iOS Safari 国行: 系统层已经加偏
+  // - Android Chrome 国内: fused location 已经加偏
+  // - 桌面 Chrome 国内: 走 Wi-Fi 定位, 通常也是 GCJ
+  // 我们的瓦片是 GCJ, 所以直接画即可。再做 WGS→GCJ 会双重偏移 ~300m。
+  // 如果以后要支持境外用户, 这里需要根据 outOfChina 区分处理。
   const userPosition = useMemo(() => {
     if (!geo?.position) return null;
-    return {
-      ...geo.position,
-      coords: pointWgsToGcj(geo.position.coords),
-    };
+    return geo.position;
   }, [geo?.position]);
   const userHeading = heading?.heading;
   const center = useMemo(() => {

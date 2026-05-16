@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // 地图 app 风格的定位按钮
 // 状态:
@@ -17,6 +17,16 @@ import { useState } from "react";
 
 export default function LocateButton({ geo, heading, follow, setFollow }) {
   const [tip, setTip] = useState(null);
+  // 用户首次点击触发授权后, 等首个 fix 到达再自动跟随到我的位置;
+  // 这样授权流程从两次点击降为一次。
+  const autoFollowPendingRef = useRef(false);
+
+  useEffect(() => {
+    if (autoFollowPendingRef.current && geo.state === "watching") {
+      autoFollowPendingRef.current = false;
+      setFollow(true);
+    }
+  }, [geo.state, setFollow]);
 
   function showTip(msg) {
     setTip(msg);
@@ -39,6 +49,7 @@ export default function LocateButton({ geo, heading, follow, setFollow }) {
     tryEnableHeading();
 
     if (geo.state === "idle") {
+      autoFollowPendingRef.current = true;
       geo.start();
       return;
     }
@@ -57,6 +68,7 @@ export default function LocateButton({ geo, heading, follow, setFollow }) {
     }
     if (geo.state === "error") {
       showTip(`定位出错,正在重试`);
+      autoFollowPendingRef.current = true;
       geo.start();
       return;
     }
