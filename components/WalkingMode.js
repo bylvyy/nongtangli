@@ -6,7 +6,7 @@ import { useT } from "../lib/i18n";
 import { haversineKm, localizeField } from "../lib/routes";
 import { pointWgsToGcj } from "../lib/coords";
 import { toggleWalked, getFootprint } from "../lib/footprint";
-import { distanceAlongPath } from "../lib/pathDistance";
+import { distanceAlongPath, findNextTurn } from "../lib/pathDistance";
 
 // 行走模式 — 全屏覆盖整个 PWA, 用户开始走以后看到的"操作面板"。
 //
@@ -28,7 +28,9 @@ import { distanceAlongPath } from "../lib/pathDistance";
 // - "距我"和 ETA 改用沿步行轨迹的距离 (route.walkingPath), 而非直线
 // - wakeLock 保持屏幕常亮, 切后台再回来自动重新申请
 //
-// C3-2 待加: "用高德继续"逃生
+// C3-A 加入:
+// - 转弯级指引: 沿轨迹扫前方第一个明显转弯 (>30°), 顶部条显示
+//   "前方 80m 左转/右转/直行 N m 到达". <25m 时升级为"即将转弯"红色急迫态.
 const ARRIVED_M = 50;
 const NEAR_M = 200;
 
@@ -69,6 +71,13 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
       return null;
     }
     return distanceAlongPath(route.walkingPath, userPos, currentGcj);
+  }, [userPos, currentGcj, route.walkingPath]);
+  // 转弯指引: 沿轨迹找用户前方第一个明显转弯
+  const nextTurn = useMemo(() => {
+    if (!userPos || !route.walkingPath || route.walkingPath.length < 3) {
+      return null;
+    }
+    return findNextTurn(route.walkingPath, userPos, currentGcj);
   }, [userPos, currentGcj, route.walkingPath]);
   // UI 展示的距离: 优先步行距离, 没有轨迹/算不出时回退直线
   const distM = distWalkM != null ? distWalkM : distLineM;
@@ -230,6 +239,45 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   const isLast = currentIdx === total - 1;
   const nextLabel = arrived ? t("walking.next.arrived") : t("walking.next");
 
+  // 转弯指引文案 + 视觉. 已经到达当前 stop 就不再显示, 没意义.
+  const turnHint = useMemo(() => {
+    if (arrived || !nextTurn) return null;
+    const { kind, distM: turnDistM } = nextTurn;
+    const fmt = fmtDist(turnDistM);
+    // imminent 仅对 turn 有意义, straight 不该急迫
+    const imminent = (kind === "turn-left" || kind === "turn-right") && turnDistM < 25;
+    if (kind === "turn-left") {
+      return {
+        kind,
+        imminent,
+        text: imminent
+          ? t("walking.turn.left.imminent")
+          : t("walking.turn.left", { dist: fmt }),
+      };
+    }
+    if (kind === "turn-right") {
+      return {
+        kind,
+        imminent,
+        text: imminent
+          ? t("walking.turn.right.imminent")
+          : t("walking.turn.right", { dist: fmt }),
+      };
+    }
+    if (kind === "straight") {
+      // 离 stop 太近 (< 30m) 时直接说"快到了" — 由 arriving 那一栏负责, 这里不重复
+      if (turnDistM < 30) {
+        return { kind, imminent: false, text: t("walking.turn.straight.short") };
+      }
+      return {
+        kind,
+        imminent: false,
+        text: t("walking.turn.straight", { dist: fmt }),
+      };
+    }
+    return null;
+  }, [arrived, nextTurn, t]);
+
   return (
     <div
       className="fixed inset-0 z-[1000] bg-ink-50 flex flex-col"
@@ -272,6 +320,24 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
           {currentIdx + 1} / {total}
         </div>
       </div>
+
+      {/* 转弯指引条 — 浅色 banner, 只在有 GPS + 有轨迹时出现 */}
+      {turnHint && (
+        <div className="shrink-0 px-3 pb-2 bg-ink-50/95">
+          <div
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              turnHint.imminent
+                ? "bg-brick-500 text-white"
+                : "bg-ink-800 text-ink-50"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <TurnIcon kind={turnHint.kind} className="shrink-0" />
+            <span className="truncate">{turnHint.text}</span>
+          </div>
+        </div>
+      )}
 
       {/* 地图 — flex-1, 自动占满剩余空间 */}
       <div className="flex-1 relative">
@@ -408,5 +474,45 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
         </div>
       )}
     </div>
+  );
+}
+
+// 转弯方向图标 — 跟随文案变色 (默认 currentColor)
+function TurnIcon({ kind, className = "" }) {
+  const common = {
+    width: 20,
+    height: 20,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+    className,
+  };
+  if (kind === "turn-left") {
+    // 上行 → 左拐 → 上行
+    return (
+      <svg {...common}>
+        <path d="M14 20v-7a3 3 0 0 0-3-3H6" />
+        <path d="M9 7l-3 3 3 3" />
+      </svg>
+    );
+  }
+  if (kind === "turn-right") {
+    return (
+      <svg {...common}>
+        <path d="M10 20v-7a3 3 0 0 1 3-3h5" />
+        <path d="M15 7l3 3-3 3" />
+      </svg>
+    );
+  }
+  // straight: 向上箭头
+  return (
+    <svg {...common}>
+      <path d="M12 4v16" />
+      <path d="M6 10l6-6 6 6" />
+    </svg>
   );
 }
