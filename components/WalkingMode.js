@@ -6,7 +6,8 @@ import { useT } from "../lib/i18n";
 import { haversineKm, localizeField } from "../lib/routes";
 import { pointWgsToGcj } from "../lib/coords";
 import { toggleWalked, getFootprint } from "../lib/footprint";
-import { pathDistance, findNextTurn } from "../lib/pathDistance";
+import { findNextTurn } from "../lib/pathDistance";
+import { useLiveWalkingRoute } from "../lib/liveWalkingRoute";
 
 // 行走模式 — 全屏覆盖整个 PWA, 用户开始走以后看到的"操作面板"。
 //
@@ -60,37 +61,34 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
     () => pointWgsToGcj(current.coords),
     [current.coords],
   );
-  // 到达判定用直线距离, 50m 以内地理上一定算到了 — 不依赖轨迹覆盖
+  // 到达判定用直线距离, 50m 以内地理上一定算到了 — 不依赖路径数据
   const distLineM = useMemo(() => {
     if (!userPos) return null;
     return haversineKm(userPos, currentGcj) * 1000;
   }, [userPos, currentGcj]);
-  // 综合步行距离: 上路 + 前方 → path 切片; 偏离 → 返航 + 续航; 回头看 → 直线×1.3
-  // 一并返回 onRoute / userOff / reroutePoint, 给 banner 和地图叠加用
-  const dist = useMemo(() => {
-    return pathDistance(route.walkingPath, userPos, currentGcj);
-  }, [userPos, currentGcj, route.walkingPath]);
-  const distM = dist.meters;
-  const onRoute = dist.onRoute;
-  const userOffM = dist.userOff;
-  // 转弯指引: 沿轨迹找用户前方第一个明显转弯。仅在 onRoute 时计算, 偏离时无意义
-  const nextTurn = useMemo(() => {
-    if (!onRoute) return null;
-    if (!userPos || !route.walkingPath || route.walkingPath.length < 3) {
-      return null;
-    }
-    return findNextTurn(route.walkingPath, userPos, currentGcj);
-  }, [userPos, currentGcj, route.walkingPath, onRoute]);
 
-  // 步行 ETA: 80 米/分钟 (城市步行均值, 含等红灯)
-  const etaMin =
-    distM != null ? Math.max(1, Math.round(distM / 80)) : null;
+  // 实时步行规划: 调 /api/walking 拿"用户当前位置 → 当前 stop"的真步行路径。
+  // 每切 stop / 用户移动 >30m / 距上次 fetch >5min 触发一次 AMap call。
+  // 用户体验上跟高德/Google Maps 的"步行导航"一致, 不依赖 D1 预存路径质量。
+  const live = useLiveWalkingRoute(userPos || null, currentGcj, currentIdx);
+  // 距离/ETA 优先用 live 数据; 加载中或失败时回退到直线×1.3 (城市步行绕路均值)
+  const distM = live.distanceM != null ? live.distanceM : distLineM != null ? distLineM * 1.3 : null;
+  const etaMin = live.durationMin != null
+    ? live.durationMin
+    : distM != null
+    ? Math.max(1, Math.round(distM / 80))
+    : null;
+
+  // 转弯指引: 优先用 live polyline (干净的 user→stop 路径), 没有时不显示
+  const nextTurn = useMemo(() => {
+    if (!userPos || !live.polyline || live.polyline.length < 3) return null;
+    return findNextTurn(live.polyline, userPos, currentGcj);
+  }, [userPos, currentGcj, live.polyline]);
 
   // 到达判定一律用直线 — 直线 50m 内地理上一定算到了, 不被绕路系数误伤
   const arrived = distLineM != null && distLineM < ARRIVED_M;
-  // 「快到了」改用综合步行距离 < 200m, 跟「距我」用同一个量, 避免"距我 927m / 快到了"的矛盾
-  const arriving =
-    !arrived && distM != null && distM < NEAR_M;
+  // 「快到了」用 live distance < 200m, 跟「距我」用同一个量
+  const arriving = !arrived && distM != null && distM < NEAR_M;
 
   // 已经到过的 stops — 一旦到达就记下, 即使后续 GPS 飘走也不再回退提示
   const [arrivedSet, setArrivedSet] = useState(() => new Set());
@@ -240,20 +238,10 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   const isLast = currentIdx === total - 1;
   const nextLabel = arrived ? t("walking.next.arrived") : t("walking.next");
 
-  // 顶部 banner. 优先级:
-  //   1. 已到达 → 不显示 (没意义)
-  //   2. 偏离路线 (userOff>=30m) → "已偏离路线 · 返回路线 X m" (橙色)
-  //   3. 在路线上 → 转弯指引 (turn-left/right/imminent/straight)
+  // 顶部 banner — 转弯指引 (live polyline 上的下一个明显转弯)。
+  // 已到达后不显示。live polyline 总是从用户当前位置出发, 没有"偏离"概念。
   const turnHint = useMemo(() => {
     if (arrived) return null;
-    // 偏离 — 优先级最高, 抢转弯指引的位
-    if (!onRoute && userOffM != null && userOffM > 0) {
-      return {
-        kind: "offroute",
-        imminent: false,
-        text: t("walking.offroute", { dist: fmtDist(userOffM) }),
-      };
-    }
     if (!nextTurn) return null;
     const { kind, distM: turnDistM } = nextTurn;
     const fmt = fmtDist(turnDistM);
@@ -289,7 +277,7 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
       };
     }
     return null;
-  }, [arrived, onRoute, userOffM, nextTurn, t]);
+  }, [arrived, nextTurn, t]);
 
   return (
     <div
@@ -334,14 +322,12 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
         </div>
       </div>
 
-      {/* 顶部指引条 — 转弯 / 即将转弯 / 偏离路线 / 直行 */}
+      {/* 顶部指引条 — 转弯 / 即将转弯 / 直行 */}
       {turnHint && (
         <div className="shrink-0 px-3 pb-2 bg-ink-50/95">
           <div
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-              turnHint.kind === "offroute"
-                ? "bg-moss-600 text-white"
-                : turnHint.imminent
+              turnHint.imminent
                 ? "bg-brick-500 text-white"
                 : "bg-ink-800 text-ink-50"
             }`}
@@ -359,6 +345,7 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
         <MapView
           stops={stops}
           walkingPath={route.walkingPath}
+          livePolyline={live.polyline}
           focusIndex={currentIdx}
           geo={geo}
           heading={heading}

@@ -69,6 +69,7 @@ function buildUserIcon(heading) {
 export default function MapInner({
   stops,
   walkingPath,
+  livePolyline,
   height,
   focusIndex,
   geo,
@@ -150,7 +151,20 @@ export default function MapInner({
         {walkPath && (
           <Polyline
             positions={walkPath}
-            pathOptions={{ color: "#8f4127", weight: 4, opacity: 0.85 }}
+            pathOptions={{
+              color: "#8f4127",
+              weight: livePolyline ? 3 : 4,
+              opacity: livePolyline ? 0.45 : 0.85,
+            }}
+          />
+        )}
+
+        {/* 行走模式: 实时步行规划 polyline (用户当前位置 → 当前 stop)
+            盖在 D1 路径之上, 用 moss 绿区分 — 这是用户"当下要走的路". */}
+        {livePolyline && livePolyline.length > 1 && (
+          <Polyline
+            positions={livePolyline}
+            pathOptions={{ color: "#5a7d4a", weight: 5, opacity: 0.9 }}
           />
         )}
 
