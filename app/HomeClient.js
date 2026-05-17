@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import RouteCard from "../components/RouteCard";
 import FilterBar from "../components/FilterBar";
@@ -10,6 +10,20 @@ import { useGeolocation } from "../lib/useGeolocation";
 import { computeStats } from "../lib/footprint";
 import { useT } from "../lib/i18n";
 
+// 用户偏好持久化 — 这两个跟"距离"相关的设置都关心 cross-session 的体验:
+// - 排序方式: 用户选了"按距离"再点进路线 → 返回不应该重置成默认顺序
+// - 想看距离的偏好: 选过"按距离"的人, 下次刷新首页应该立即看到距离, 不该再点一次
+const SORT_KEY = "home.sortBy:v1";
+
+function readSortPref() {
+  if (typeof window === "undefined") return "default";
+  try {
+    const v = window.localStorage.getItem(SORT_KEY);
+    if (v === "distance" || v === "default") return v;
+  } catch {}
+  return "default";
+}
+
 export default function HomeClient({ newest, rest, themes, atmospheres }) {
   const { t } = useT();
   const [filter, setFilter] = useState({
@@ -18,9 +32,23 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
     atmosphere: null,
   });
   const [showFilter, setShowFilter] = useState(false);
+  // SSR 期间一律 default, 客户端挂载后再从 localStorage 同步, 避免 hydration mismatch
   const [sortBy, setSortBy] = useState("default"); // 'default' | 'distance'
   const fp = useFootprint();
   const geo = useGeolocation();
+
+  // 挂载: 读上次偏好。如果上次是 "distance", 同步到 state + 主动 geo.start()
+  // (useGeolocation 的 Permissions API 自启动是异步的, 等它完成会有 1-2s 黑屏期
+  // 距离不显示; 主动 start 直接走 getCurrentPosition 快通道, 1s 内就有 fix)
+  useEffect(() => {
+    const pref = readSortPref();
+    if (pref === "distance") {
+      setSortBy("distance");
+      // geo 可能已经 watching (Permissions API 比较快的话), start() 是 noop
+      if (geo.state === "idle") geo.start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const allRoutes = [...newest, ...rest];
   const stats = computeStats(fp, allRoutes);
 
@@ -63,10 +91,16 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
   function onSortDistance() {
     if (sortBy === "distance") {
       setSortBy("default");
+      try {
+        window.localStorage.setItem(SORT_KEY, "default");
+      } catch {}
       return;
     }
     if (geo.state === "idle") geo.start();
     setSortBy("distance");
+    try {
+      window.localStorage.setItem(SORT_KEY, "distance");
+    } catch {}
   }
 
   const distanceLabel = (() => {
