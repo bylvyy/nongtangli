@@ -3,23 +3,25 @@
 import { useState } from "react";
 import { useT } from "../lib/i18n";
 
-// "导航到起点" — 让用户自己挑用什么地图打开。
+// "导航到起点" — 让用户挑用什么地图打开 + app 没装时自动降级到网页版。
 //
 // 设计原则:
-// - 不做任何 deeplink 自动 fallback / setTimeout 跳转
-//   (旧版会在桌面/没装高德时强制跳到高德 web, 桌面用户直接报 console error
-//    且没人想被强制送进中文页面)
-// - 一个按钮 → 打开 sheet → 用户点哪个跳哪个 → 失败用户自己回来点别的
-// - 平台决定第一行: iOS = Apple Maps, Android = Google Maps,
-//   桌面没系统地图 → Google Maps web
-// - 第二行永远是高德 app (装了体验最好), 第三行高德网页版 (没装的兜底)
+// 1. **用户做决策前不要自动跳转** — sheet 上没有倒计时, 用户点哪个跳哪个
+// 2. **用户做决策后, deeplink 失败要静默 fallback 到网页**
+//    - 旧版会让 deeplink 失败用户看到空白页, 还要回 sheet 再点一次"高德网页版"
+//    - 现在用户点"高德" → 1.5s 内 app 拉起就走 app, 拉不起来直接跳高德网页, 用户无感知
+// 3. **每个平台只保留 2 行** (系统默认 + 高德), 因为高德行已自带 web fallback,
+//    单独的"高德网页版"行没意义
 //
-// 坐标系: 数据库里 stops.coords 是 WGS-84, 所有目标 URL 全部直接传 WGS 即可。
+// 平台决定第一行: iOS = Apple Maps (always installed), Android = Google Maps,
+// 桌面没系统地图 → Google Maps web. 第二行永远是高德 (app 优先, 没装走网页版).
+//
+// 坐标系: 数据库里 stops.coords 是 WGS-84, 所有目标 URL 全部直接传 WGS 即可.
 // - Apple Maps: 中国区自动转 GCJ, 不能预先转, 否则双重偏移 ~400m
 // - Google Maps: 不做中国偏移 (Google 在中国大陆地图整体偏 ~500m, 这是 Google 的事)
 // - 高德 app: dev=1 告诉它"我传的是 WGS", 由高德服务端转 GCJ
 // - 高德 web: coordinate=wgs84 同上
-// 任何一处漏写 dev=1 或 coordinate=wgs84 都会出现 ~400m 偏移, 改的时候特别注意。
+// 任何一处漏写 dev=1 或 coordinate=wgs84 都会出现 ~400m 偏移, 改的时候特别注意.
 
 function buildLinks(stop) {
   const [lat, lng] = stop.coords; // WGS-84
@@ -28,7 +30,7 @@ function buildLinks(stop) {
 
   return {
     appleMaps: `maps://?daddr=${lat},${lng}&dirflg=w&q=${name}`,
-    googleMaps: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`,
+    googleMapsWeb: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`,
     amapAppIOS: `iosamap://path?sourceApplication=nongtangli&dname=${name}&dlat=${lat}&dlon=${lng}&dev=1&t=2`,
     amapAppAndroid: `androidamap://route/plan/?dname=${name}&dlat=${lat}&dlon=${lng}&dev=1&t=2`,
     amapWeb: `https://uri.amap.com/navigation?to=${lng},${lat},${name}&mode=walk&coordinate=wgs84`,
@@ -43,6 +45,44 @@ function detectPlatform() {
   return "desktop";
 }
 
+// 通用 deeplink fallback 模式:
+// - 立刻发起 deeplink 跳转
+// - 1.5s 内如果页面被切到后台 (visibilitychange hidden / blur / pagehide)
+//   → 说明 app 拉起成功, 取消 fallback
+// - 否则 1.5s 后页面还在前台 → app 没装, 跳 webFallback
+//
+// 1500ms 是经验值: 慢一点的 Android 设备拉起原生 app 大概 800-1200ms.
+// 调短会误伤 (app 实际打开了但还没完成切换), 调长用户等太久.
+function openWithFallback(deeplink, webFallback) {
+  let cancelled = false;
+  function cancel() {
+    cancelled = true;
+    cleanup();
+  }
+  function cleanup() {
+    document.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("blur", cancel);
+    window.removeEventListener("pagehide", cancel);
+  }
+  function onVis() {
+    if (document.hidden) cancel();
+  }
+  document.addEventListener("visibilitychange", onVis);
+  window.addEventListener("blur", cancel);
+  window.addEventListener("pagehide", cancel);
+
+  // 1.5s 后还在前台 → app 没装
+  setTimeout(() => {
+    cleanup();
+    if (!cancelled && !document.hidden) {
+      window.location.href = webFallback;
+    }
+  }, 1500);
+
+  // 发起 deeplink — 用 location.href 而非 window.open, 避免新 tab 残留
+  window.location.href = deeplink;
+}
+
 export default function NavigateToStart({ route }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -52,68 +92,66 @@ export default function NavigateToStart({ route }) {
   const links = buildLinks(start);
   const platform = detectPlatform();
 
-  // 每个 option: { label, sublabel, href, target }
-  // target: "_self" 让 deeplink 直接由当前页发起 (不开新 tab, 失败也不留空白页)
-  //         "_blank" 给 web 链接 — 用户回得来
+  // 每个 option:
+  // { key, label, sublabel, action: () => void }
+  // action 内部决定怎么跳 (单纯 web / app+fallback / 新 tab)
   const options = [];
   if (platform === "ios") {
     options.push({
       key: "apple",
       label: t("nav.option.appleMaps.label"),
       sublabel: t("nav.option.appleMaps.sub"),
-      href: links.appleMaps,
-      target: "_self",
+      action: () => {
+        // Apple Maps 是 iOS 内置 app, 一定能拉起, 不需要 fallback
+        window.location.href = links.appleMaps;
+      },
     });
     options.push({
-      key: "amap-app",
+      key: "amap",
       label: t("nav.option.amapApp.label"),
       sublabel: t("nav.option.amapApp.sub"),
-      href: links.amapAppIOS,
-      target: "_self",
+      action: () => openWithFallback(links.amapAppIOS, links.amapWeb),
     });
   } else if (platform === "android") {
     options.push({
       key: "google",
       label: t("nav.option.googleMaps.label"),
       sublabel: t("nav.option.googleMaps.sub"),
-      href: links.googleMaps,
-      target: "_blank",
+      action: () => {
+        // Android 上 https://www.google.com/maps/... 是 app link,
+        // 装了 Google Maps app 会自动用 app 打开; 没装就开浏览器.
+        // 系统级 fallback, 不需要 JS 手动处理.
+        window.location.href = links.googleMapsWeb;
+      },
     });
     options.push({
-      key: "amap-app",
+      key: "amap",
       label: t("nav.option.amapApp.label"),
       sublabel: t("nav.option.amapApp.sub"),
-      href: links.amapAppAndroid,
-      target: "_self",
+      action: () => openWithFallback(links.amapAppAndroid, links.amapWeb),
     });
   } else {
-    // 桌面: 没系统地图 app, Google Maps web 顶替
+    // 桌面: 没原生 app, 都是 web. 新 tab 打开, 用户回得来.
     options.push({
       key: "google",
       label: t("nav.option.googleMaps.label"),
       sublabel: t("nav.option.googleMaps.sub"),
-      href: links.googleMaps,
-      target: "_blank",
+      action: () => {
+        window.open(links.googleMapsWeb, "_blank", "noopener,noreferrer");
+      },
+    });
+    options.push({
+      key: "amap-web",
+      label: t("nav.option.amapWeb.label"),
+      sublabel: t("nav.option.amapWeb.sub"),
+      action: () => {
+        window.open(links.amapWeb, "_blank", "noopener,noreferrer");
+      },
     });
   }
-  // 第三行 (桌面是第二行): 高德网页版, 永远兜底
-  options.push({
-    key: "amap-web",
-    label: t("nav.option.amapWeb.label"),
-    sublabel: t("nav.option.amapWeb.sub"),
-    href: links.amapWeb,
-    target: "_blank",
-  });
 
   function onPick(opt) {
-    // 直接发起跳转, 不做任何 timer / visibilitychange 监听。
-    // - target=_self: 用 location.assign, deeplink 失败浏览器自然停在原页
-    // - target=_blank: 用 window.open, web 链接新 tab 打开
-    if (opt.target === "_blank") {
-      window.open(opt.href, "_blank", "noopener,noreferrer");
-    } else {
-      window.location.assign(opt.href);
-    }
+    opt.action();
     setOpen(false);
   }
 

@@ -10,10 +10,16 @@ import { useGeolocation } from "../lib/useGeolocation";
 import { computeStats } from "../lib/footprint";
 import { useT } from "../lib/i18n";
 
-// 用户偏好持久化 — 这两个跟"距离"相关的设置都关心 cross-session 的体验:
-// - 排序方式: 用户选了"按距离"再点进路线 → 返回不应该重置成默认顺序
-// - 想看距离的偏好: 选过"按距离"的人, 下次刷新首页应该立即看到距离, 不该再点一次
+// 用户偏好持久化 — "排序方式"和"想看距离"是两件事, 分开存:
+// - SORT_KEY: 用户选过"按距离"再进详情返回, 排序状态保留
+// - DISTANCE_KEY: 一次性 sticky — 用户曾经表达过"我想看距离"(任何时候点过按距离),
+//   后续每次刷新首页都自动启动定位, 距离一直显示。
+//   即使后来取消了排序, 也不该把卡片上的"距我"也撤掉 — 那是定位授权, 不是排序。
+//
+// 不直接靠 navigator.permissions.query("geolocation") 来判断:
+// iOS Safari 的 Permissions API 长期不可靠, sticky localStorage 是必须的兜底。
 const SORT_KEY = "home.sortBy:v1";
+const DISTANCE_KEY = "home.showDistance:v1";
 
 function readSortPref() {
   if (typeof window === "undefined") return "default";
@@ -22,6 +28,22 @@ function readSortPref() {
     if (v === "distance" || v === "default") return v;
   } catch {}
   return "default";
+}
+
+function readDistancePref() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(DISTANCE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeDistancePref(on) {
+  try {
+    if (on) window.localStorage.setItem(DISTANCE_KEY, "1");
+    else window.localStorage.removeItem(DISTANCE_KEY);
+  } catch {}
 }
 
 export default function HomeClient({ newest, rest, themes, atmospheres }) {
@@ -37,16 +59,16 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
   const fp = useFootprint();
   const geo = useGeolocation();
 
-  // 挂载: 读上次偏好。如果上次是 "distance", 同步到 state + 主动 geo.start()
-  // (useGeolocation 的 Permissions API 自启动是异步的, 等它完成会有 1-2s 黑屏期
-  // 距离不显示; 主动 start 直接走 getCurrentPosition 快通道, 1s 内就有 fix)
+  // 挂载:
+  // 1. 同步排序偏好 — 用户在详情页返回时排序状态保留
+  // 2. 只要 distance pref 是 on (用户曾经点过"按距离"), 就主动 geo.start()
+  //    取消排序 ≠ 取消显示距离, 所以不依赖 sortBy 状态
+  // useGeolocation 的 Permissions API 自启动在 iOS Safari 不可靠, 主动 start
+  // 直接走 getCurrentPosition 快通道, 1s 内就有 fix
   useEffect(() => {
-    const pref = readSortPref();
-    if (pref === "distance") {
-      setSortBy("distance");
-      // geo 可能已经 watching (Permissions API 比较快的话), start() 是 noop
-      if (geo.state === "idle") geo.start();
-    }
+    const sortPref = readSortPref();
+    if (sortPref === "distance") setSortBy("distance");
+    if (readDistancePref() && geo.state === "idle") geo.start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const allRoutes = [...newest, ...rest];
@@ -90,6 +112,8 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
 
   function onSortDistance() {
     if (sortBy === "distance") {
+      // 取消"按距离"排序, 但**不**关掉距离显示 —
+      // 距离显示是定位授权问题, 跟排序无关; 一旦用户开过, 就让它一直亮着。
       setSortBy("default");
       try {
         window.localStorage.setItem(SORT_KEY, "default");
@@ -98,6 +122,7 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
     }
     if (geo.state === "idle") geo.start();
     setSortBy("distance");
+    writeDistancePref(true); // sticky: 后续刷新自动启动定位
     try {
       window.localStorage.setItem(SORT_KEY, "distance");
     } catch {}
