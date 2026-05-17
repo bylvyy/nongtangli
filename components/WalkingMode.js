@@ -346,6 +346,7 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
           stops={stops}
           walkingPath={route.walkingPath}
           livePolyline={live.polyline}
+          showTargetArrow={!arrived && (distLineM == null || distLineM > 25)}
           focusIndex={currentIdx}
           geo={geo}
           heading={heading}

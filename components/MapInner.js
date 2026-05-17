@@ -14,6 +14,7 @@ import {
 import L from "leaflet";
 import { getWalkingPath, getWalkingPathSync } from "../lib/walkingRoute";
 import { pointWgsToGcj } from "../lib/coords";
+import { bearing as computeBearing } from "../lib/pathDistance";
 import { useT } from "../lib/i18n";
 import { localizeField } from "../lib/routes";
 import LocateButton from "./LocateButton";
@@ -46,15 +47,25 @@ function FitBounds({ stops, focusIndex, follow, userPos }) {
   return null;
 }
 
-function buildUserIcon(heading) {
+function buildUserIcon(heading, targetBearing) {
   // SVG transform="rotate(deg cx cy)" 用 attribute 写法, Safari 不认 CSS
   // transform-origin 影响 SVG 元素, 所以这里只走 attribute 形式。
   const cone =
     typeof heading === "number"
       ? `<path d="M24 24 L14 6 Q24 1 34 6 Z" fill="#3b82f6" opacity="0.35" transform="rotate(${heading.toFixed(1)} 24 24)" />`
       : "";
+  // 指向当前 stop 的小箭头 — world-relative bearing (地图永远北朝上)。
+  // brick 红, 跟蓝色朝向锥分开。绘制在外环上, 半径 22, 三角"尖"在外侧。
+  // path: 以原点为基准画上方一个三角 (3 个点), 再 rotate 到目标 bearing。
+  const arrow =
+    typeof targetBearing === "number"
+      ? `<g transform="rotate(${targetBearing.toFixed(1)} 24 24)">
+           <path d="M24 0 L20 8 L28 8 Z" fill="#b35a3c" stroke="white" stroke-width="1.2" stroke-linejoin="round" />
+         </g>`
+      : "";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
       ${cone}
+      ${arrow}
       <circle cx="24" cy="24" r="9" fill="white" />
       <circle cx="24" cy="24" r="7" fill="#3b82f6" />
     </svg>`;
@@ -70,6 +81,7 @@ export default function MapInner({
   stops,
   walkingPath,
   livePolyline,
+  showTargetArrow,
   height,
   focusIndex,
   geo,
@@ -100,6 +112,16 @@ export default function MapInner({
     return geo.position;
   }, [geo?.position]);
   const userHeading = heading?.heading;
+  // 指向当前 stop 的世界坐标 bearing。地图永远北朝上, 所以这个角度直接 == 屏幕上的旋转角。
+  // 关闭条件: 没有用户位置 / 没启用 / 距离过近 (<25m, 箭头会乱抖)
+  const targetBearing = useMemo(() => {
+    if (!showTargetArrow) return null;
+    if (!userPosition) return null;
+    if (focusIndex == null) return null;
+    const stop = stopsGcj?.[focusIndex];
+    if (!stop) return null;
+    return computeBearing(userPosition.coords, stop.coords);
+  }, [showTargetArrow, userPosition, focusIndex, stopsGcj]);
   const center = useMemo(() => {
     if (!stopsGcj?.length) return [31.2304, 121.4737];
     return stopsGcj[0].coords;
@@ -128,8 +150,8 @@ export default function MapInner({
 
   const straightLine = stopsGcj?.map((s) => s.coords);
   const userIcon = useMemo(
-    () => buildUserIcon(userHeading),
-    [userHeading],
+    () => buildUserIcon(userHeading, targetBearing),
+    [userHeading, targetBearing],
   );
 
   return (
