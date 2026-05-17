@@ -6,7 +6,7 @@ import { useT } from "../lib/i18n";
 import { haversineKm, localizeField } from "../lib/routes";
 import { pointWgsToGcj } from "../lib/coords";
 import { toggleWalked, getFootprint } from "../lib/footprint";
-import { distanceAlongPath, findNextTurn } from "../lib/pathDistance";
+import { pathDistance, findNextTurn } from "../lib/pathDistance";
 
 // 行走模式 — 全屏覆盖整个 PWA, 用户开始走以后看到的"操作面板"。
 //
@@ -65,31 +65,32 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
     if (!userPos) return null;
     return haversineKm(userPos, currentGcj) * 1000;
   }, [userPos, currentGcj]);
-  // 显示用步行距离: 沿轨迹算更接近实际"还要走多远"
-  const distWalkM = useMemo(() => {
-    if (!userPos || !route.walkingPath || route.walkingPath.length < 2) {
-      return null;
-    }
-    return distanceAlongPath(route.walkingPath, userPos, currentGcj);
+  // 综合步行距离: 上路 + 前方 → path 切片; 偏离 → 返航 + 续航; 回头看 → 直线×1.3
+  // 一并返回 onRoute / userOff / reroutePoint, 给 banner 和地图叠加用
+  const dist = useMemo(() => {
+    return pathDistance(route.walkingPath, userPos, currentGcj);
   }, [userPos, currentGcj, route.walkingPath]);
-  // 转弯指引: 沿轨迹找用户前方第一个明显转弯
+  const distM = dist.meters;
+  const onRoute = dist.onRoute;
+  const userOffM = dist.userOff;
+  // 转弯指引: 沿轨迹找用户前方第一个明显转弯。仅在 onRoute 时计算, 偏离时无意义
   const nextTurn = useMemo(() => {
+    if (!onRoute) return null;
     if (!userPos || !route.walkingPath || route.walkingPath.length < 3) {
       return null;
     }
     return findNextTurn(route.walkingPath, userPos, currentGcj);
-  }, [userPos, currentGcj, route.walkingPath]);
-  // UI 展示的距离: 优先步行距离, 没有轨迹/算不出时回退直线
-  const distM = distWalkM != null ? distWalkM : distLineM;
+  }, [userPos, currentGcj, route.walkingPath, onRoute]);
 
   // 步行 ETA: 80 米/分钟 (城市步行均值, 含等红灯)
   const etaMin =
     distM != null ? Math.max(1, Math.round(distM / 80)) : null;
 
-  // 到达判定一律用直线 — 步行距离会比直线大, 用步行判定会让真实"已到"被误判为"还差几十米"
+  // 到达判定一律用直线 — 直线 50m 内地理上一定算到了, 不被绕路系数误伤
   const arrived = distLineM != null && distLineM < ARRIVED_M;
+  // 「快到了」改用综合步行距离 < 200m, 跟「距我」用同一个量, 避免"距我 927m / 快到了"的矛盾
   const arriving =
-    distLineM != null && distLineM >= ARRIVED_M && distLineM < NEAR_M;
+    !arrived && distM != null && distM < NEAR_M;
 
   // 已经到过的 stops — 一旦到达就记下, 即使后续 GPS 飘走也不再回退提示
   const [arrivedSet, setArrivedSet] = useState(() => new Set());
@@ -239,9 +240,21 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
   const isLast = currentIdx === total - 1;
   const nextLabel = arrived ? t("walking.next.arrived") : t("walking.next");
 
-  // 转弯指引文案 + 视觉. 已经到达当前 stop 就不再显示, 没意义.
+  // 顶部 banner. 优先级:
+  //   1. 已到达 → 不显示 (没意义)
+  //   2. 偏离路线 (userOff>=30m) → "已偏离路线 · 返回路线 X m" (橙色)
+  //   3. 在路线上 → 转弯指引 (turn-left/right/imminent/straight)
   const turnHint = useMemo(() => {
-    if (arrived || !nextTurn) return null;
+    if (arrived) return null;
+    // 偏离 — 优先级最高, 抢转弯指引的位
+    if (!onRoute && userOffM != null && userOffM > 0) {
+      return {
+        kind: "offroute",
+        imminent: false,
+        text: t("walking.offroute", { dist: fmtDist(userOffM) }),
+      };
+    }
+    if (!nextTurn) return null;
     const { kind, distM: turnDistM } = nextTurn;
     const fmt = fmtDist(turnDistM);
     // imminent 仅对 turn 有意义, straight 不该急迫
@@ -276,7 +289,7 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
       };
     }
     return null;
-  }, [arrived, nextTurn, t]);
+  }, [arrived, onRoute, userOffM, nextTurn, t]);
 
   return (
     <div
@@ -321,12 +334,14 @@ export default function WalkingMode({ route, geo, heading, onExit }) {
         </div>
       </div>
 
-      {/* 转弯指引条 — 浅色 banner, 只在有 GPS + 有轨迹时出现 */}
+      {/* 顶部指引条 — 转弯 / 即将转弯 / 偏离路线 / 直行 */}
       {turnHint && (
         <div className="shrink-0 px-3 pb-2 bg-ink-50/95">
           <div
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-              turnHint.imminent
+              turnHint.kind === "offroute"
+                ? "bg-moss-600 text-white"
+                : turnHint.imminent
                 ? "bg-brick-500 text-white"
                 : "bg-ink-800 text-ink-50"
             }`}
@@ -491,6 +506,16 @@ function TurnIcon({ kind, className = "" }) {
     "aria-hidden": true,
     className,
   };
+  if (kind === "offroute") {
+    // 警示: ! 三角
+    return (
+      <svg {...common}>
+        <path d="M12 3l10 18H2L12 3z" />
+        <path d="M12 10v5" />
+        <path d="M12 18.5v.01" />
+      </svg>
+    );
+  }
   if (kind === "turn-left") {
     // 上行 → 左拐 → 上行
     return (
