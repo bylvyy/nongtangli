@@ -26,7 +26,15 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
 
   const userPoint = geo?.position?.coords;
 
-  // 给每条路线算一次最近距离(没定位则为 null)
+  // 给每条路线算一次最近距离(没定位则为 null)。
+  // newest 和 rest 都算 — 卡片在定位可用时一直展示「距我」, 不用先点「按距离」。
+  const newestWithDistance = useMemo(() => {
+    if (!userPoint) return newest.map((r) => ({ route: r, distanceKm: null }));
+    return newest.map((r) => ({
+      route: r,
+      distanceKm: nearestStopDistanceKm(r, userPoint),
+    }));
+  }, [newest, userPoint]);
   const restWithDistance = useMemo(() => {
     if (!userPoint) return rest.map((r) => ({ route: r, distanceKm: null }));
     return rest.map((r) => ({
@@ -125,12 +133,15 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
           </span>
         </div>
         <div className="space-y-3">
-          {newest.map((r) => (
+          {newestWithDistance.map(({ route: r, distanceKm }) => (
             <RouteCard
               key={r.id}
               route={r}
               isWalked={fp.walked.includes(r.id)}
               isWished={fp.wishlist.includes(r.id)}
+              distanceFromMe={
+                typeof distanceKm === "number" ? distanceKm : undefined
+              }
             />
           ))}
         </div>
@@ -181,9 +192,7 @@ export default function HomeClient({ newest, rest, themes, atmospheres }) {
               isWalked={fp.walked.includes(r.id)}
               isWished={fp.wishlist.includes(r.id)}
               distanceFromMe={
-                sortBy === "distance" && typeof distanceKm === "number"
-                  ? distanceKm
-                  : undefined
+                typeof distanceKm === "number" ? distanceKm : undefined
               }
             />
           ))}
