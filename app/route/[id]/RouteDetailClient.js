@@ -19,6 +19,7 @@ import {
   localizeField,
   localizeIntensity,
   localizeTheme,
+  nearestStopDistanceKm,
 } from "../../../lib/routes";
 import { useT } from "../../../lib/i18n";
 
@@ -32,8 +33,29 @@ export default function RouteDetailClient({ route }) {
   const router = useRouter();
   const intensity = deriveIntensity(route.distanceKm);
 
+  // 跟首页用同一个 sticky flag: 用户在首页点过"按距离"之后,
+  // 即使 iOS Safari 的 Permissions API 不可靠, 进入详情也能自动恢复定位 → 显示「距我」.
+  // useGeolocation 内部已经在 Permissions API 可用时自动 start, 这里只补 iOS 那条路径.
+  useEffect(() => {
+    let pref = false;
+    try {
+      pref = window.localStorage.getItem("home.showDistance:v1") === "1";
+    } catch {}
+    if (pref && geo.state === "idle") geo.start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const name = localizeField(route, "name", lang);
   const hook = localizeField(route, "hook", lang);
+
+  // 「距我 X km」: 跟首页卡片一致的语义 — 已经在 watching 才显示, 不主动 start.
+  // 不强制要求用户授权: 进入详情页本身已经付出注意力成本, 再弹定位框打扰。
+  // 如果用户在首页或行走过程中已经授权过, useGeolocation 会在 mount 时自动恢复 watch.
+  const userPoint = geo?.position?.coords;
+  const distanceFromMe =
+    userPoint && route?.stops?.length
+      ? nearestStopDistanceKm(route, userPoint)
+      : null;
 
   function onBack(e) {
     e.preventDefault();
@@ -210,7 +232,7 @@ export default function RouteDetailClient({ route }) {
                 {localizeDistrict(route.district, lang)}
               </span>
             </div>
-            <div className="mt-3 flex items-center gap-3 text-xs text-ink-400">
+            <div className="mt-3 flex items-center gap-3 text-xs text-ink-400 flex-wrap">
               <span>{route.distanceKm} km</span>
               <span>·</span>
               <span>
@@ -220,6 +242,14 @@ export default function RouteDetailClient({ route }) {
               <span>
                 {route.stops.length} {t("stats.stops")}
               </span>
+              {typeof distanceFromMe === "number" && (
+                <>
+                  <span>·</span>
+                  <span className="text-brick-500">
+                    {t("card.distFromMe", { dist: formatKm(distanceFromMe) })}
+                  </span>
+                </>
+              )}
             </div>
           </header>
 
@@ -259,4 +289,10 @@ export default function RouteDetailClient({ route }) {
     </div>
     </>
   );
+}
+
+function formatKm(km) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  if (km < 10) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
 }
